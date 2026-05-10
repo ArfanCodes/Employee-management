@@ -1,8 +1,10 @@
+<div align="center">
+
 # Staff Leave Management System
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Azure%20Static%20Web%20Apps-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://brave-glacier-08bdffd00.7.azurestaticapps.net)
+A full-stack leave management platform built entirely with [Claude Code](https://claude.ai/code) by Anthropic and deployed on Microsoft Azure.
 
-A full-stack web application for managing employee leave requests, built entirely using [Claude Code](https://claude.ai/code) by Anthropic. The project covers everything from authentication and role-based access to real-time dashboard updates, all deployed on Microsoft Azure.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Azure%20Static%20Web%20Apps-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://brave-glacier-08bdffd00.7.azurestaticapps.net)
 
 &nbsp;
 
@@ -15,13 +17,15 @@ A full-stack web application for managing employee leave requests, built entirel
 ![SQL Server](https://img.shields.io/badge/Azure_SQL-CC2927?style=for-the-badge&logo=microsoft-sql-server&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)
 
+</div>
+
 &nbsp;
 
 ## What this project does
 
-The system gives employees a clean interface to apply for leave, track their request status in real time, and cancel pending requests if plans change. On the admin side, managers get a full overview of the team — they can approve or reject requests with a reason, see all employees, and watch dashboard stats update the moment they take an action.
+Employees get a clean interface to apply for leave, track their request status, and cancel pending requests.
 
-There are no page refreshes, no manual syncing. The moment an admin approves or rejects a request, the UI reflects it instantly using optimistic updates. When a user switches back to the tab after being away, the data quietly re-fetches in the background via the Page Visibility API.
+Admins get a full company overview — approve or reject requests with a reason, monitor dashboard stats, and see every registered employee. Everything updates instantly without page refreshes using optimistic UI updates and the Page Visibility API.
 
 &nbsp;
 
@@ -29,15 +33,24 @@ There are no page refreshes, no manual syncing. The moment an admin approves or 
 
 **For employees**
 
-Employees register with their name, email, department, and password. Once logged in they land on a personal dashboard showing their total requests and a breakdown by status. From there they can submit a new leave request by picking a type, choosing a date range, and writing a reason. The duration calculates automatically. Past and current requests live in a history page with filter chips for each status, and pending requests can be cancelled inline without any pop-up dialogs.
+- Register with name, email, department, and password
+- Dashboard showing total requests broken down by status
+- Submit leave requests by picking a type, date range, and reason — duration calculates automatically
+- Filter leave history by status with a single tap
+- Cancel pending requests inline, no pop-up dialogs
 
 **For admins**
 
-Admins see a separate dashboard with company-wide stats: total employees, pending requests, approvals, and rejections. The leave requests tab lists every submission across the team with the employee name, leave type, dates, and current status. Approving is a single click. Rejecting opens a small inline field to write a reason, which gets stored and shown to the employee in their history. There is also an employees tab that lists every registered user with their department and role.
+- Company-wide stats: total employees, pending, approved, and rejected counts
+- Full leave request list across the whole team
+- Approve with one click or reject with an optional reason that gets shown to the employee
+- Employees tab listing every registered user with department and join date
 
 **Authentication**
 
-Login and registration use JWT. The token is stored in localStorage and attached to every API request automatically via an Axios interceptor. If a token expires or gets invalidated, the interceptor fires a custom browser event that the auth context listens for, clearing state and redirecting to login without a hard page reload.
+- JWT-based login and registration
+- Token attached to every API request via Axios interceptor
+- On token expiry, a custom browser event clears auth state and redirects cleanly without a hard reload
 
 &nbsp;
 
@@ -45,38 +58,47 @@ Login and registration use JWT. The token is stored in localStorage and attached
 
 **Frontend**
 
-React 18 with React Router v6 handles all client-side routing and navigation. Vite replaces Create React App for a much faster dev experience and build process. Tailwind CSS handles all styling with a custom indigo and violet color scheme, Inter as the default font, and a few utility classes for gradients. Framer Motion drives the entrance animations on dashboards and cards. Lucide React provides the icon set throughout the UI.
+| Library | Purpose |
+|---|---|
+| React 18 + React Router v6 | UI and client-side routing |
+| Vite | Build tool, faster than Create React App |
+| Tailwind CSS | Utility-first styling, custom indigo/violet theme |
+| Framer Motion | Entrance animations on dashboards and cards |
+| Lucide React | Icon set |
+| Axios | HTTP client with request and response interceptors |
 
 **Backend**
 
-Node.js with Express handles all API routes. The codebase is split into controllers, routes, and middleware so each layer has a clear responsibility. `bcryptjs` hashes passwords before they ever touch the database. `jsonwebtoken` signs and verifies tokens. `mssql` connects to SQL Server using a connection pool so the app does not open a new connection on every request.
-
-**Database**
-
-Azure SQL Database stores all data across two tables: `users` and `leave_requests`. Foreign key constraints link leave requests back to the employee who submitted them and the admin who reviewed them. A check constraint on the database level enforces that `end_date` can never be before `start_date`. Indexes are placed on `employee_id` and `status` since those are the most queried columns.
+| Library | Purpose |
+|---|---|
+| Node.js + Express | API server, split into controllers/routes/middleware |
+| bcryptjs | Password hashing before storage |
+| jsonwebtoken | Token signing and verification |
+| mssql | SQL Server driver with connection pooling |
+| dotenv | Environment variable loading |
 
 **Azure infrastructure**
 
 | Service | What it does |
 |---|---|
-| Azure App Service | Hosts the Node.js backend as a managed web app on Linux |
-| Azure SQL Database | Fully managed SQL Server database with automatic backups |
-| Azure Static Web Apps | Hosts the built React frontend with a global CDN |
-| Azure SQL Firewall | Controls which IPs and Azure services can reach the database |
+| Azure App Service | Hosts the Node.js backend on Linux |
+| Azure SQL Database | Fully managed SQL Server with automatic backups |
+| Azure Static Web Apps | Hosts the React frontend via global CDN |
+| Azure SQL Firewall | Controls which IPs can reach the database |
 
 &nbsp;
 
 ## API overview
 
-The backend exposes three route groups.
+Three route groups, all under `/api`.
 
-`/api/auth` handles registration, login, and profile fetch. No token required to register or log in.
+**`/api/auth`** — public routes for register, login, and profile fetch.
 
-`/api/leave` is for employees only. It covers submitting a new request, fetching personal leave history, and cancelling a pending request.
+**`/api/leave`** — employee-only. Submit a request, fetch personal history, cancel a pending request.
 
-`/api/admin` is locked to admin-role tokens only. It exposes endpoints for listing all employees, listing all leave requests across the company, approving a request, rejecting a request with a reason, and fetching the dashboard stats.
+**`/api/admin`** — admin-only. List employees, list all leave requests, approve, reject, and fetch dashboard stats.
 
-Every protected route passes through two middleware functions in sequence: `verifyToken` decodes the JWT and attaches the user payload to the request, then `requireRole` checks that the user's role matches what the route expects before the controller ever runs.
+Every protected route passes through `verifyToken` (decodes JWT, attaches user to request) then `requireRole` (checks the role matches before the controller runs).
 
 &nbsp;
 
@@ -114,44 +136,20 @@ leave_requests
 staff-leave-management/
 ├── backend/
 │   ├── src/
-│   │   ├── config/
-│   │   │   └── db.js                  SQL Server connection pool
-│   │   ├── controllers/
-│   │   │   ├── auth.controller.js
-│   │   │   ├── leave.controller.js
-│   │   │   └── admin.controller.js
-│   │   ├── middleware/
-│   │   │   ├── auth.js                JWT verification
-│   │   │   └── roleCheck.js           Role guard
-│   │   ├── routes/
-│   │   │   ├── auth.routes.js
-│   │   │   ├── leave.routes.js
-│   │   │   └── admin.routes.js
-│   │   └── app.js                     Express setup, CORS, route mounting
+│   │   ├── config/db.js               SQL Server connection pool
+│   │   ├── controllers/               auth, leave, admin
+│   │   ├── middleware/                JWT verification, role guard
+│   │   └── routes/                    auth, leave, admin route groups
 │   ├── server.js
 │   ├── .env.example
 │   └── package.json
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── DashboardLayout.jsx    Sidebar + main content wrapper
-│   │   │   ├── Sidebar.jsx            Navigation for both roles
-│   │   │   ├── ProtectedRoute.jsx     Auth and role guard for pages
-│   │   │   └── StatusBadge.jsx        Colored status pill
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx        Global auth state
-│   │   ├── pages/
-│   │   │   ├── Home.jsx
-│   │   │   ├── Login.jsx
-│   │   │   ├── Register.jsx
-│   │   │   ├── EmployeeDashboard.jsx
-│   │   │   ├── AdminDashboard.jsx
-│   │   │   ├── ApplyLeave.jsx
-│   │   │   └── LeaveHistory.jsx
-│   │   ├── services/
-│   │   │   └── api.js                 Axios instance with interceptors
-│   │   └── App.jsx
+│   │   ├── components/                DashboardLayout, Sidebar, ProtectedRoute, StatusBadge
+│   │   ├── context/AuthContext.jsx    Global auth state
+│   │   ├── pages/                     Home, Login, Register, dashboards, ApplyLeave, LeaveHistory
+│   │   └── services/api.js            Axios instance with interceptors
 │   ├── .env.example
 │   └── package.json
 │
@@ -163,6 +161,8 @@ staff-leave-management/
 
 ## Built with Claude Code
 
-This entire project was written with [Claude Code](https://claude.ai/code), Anthropic's agentic coding tool. The development process involved iterative prompting to build out features, debug Azure connectivity issues, redesign the UI, and solve real-time state management problems like race conditions between polling intervals and optimistic updates.
+This project was written entirely with [Claude Code](https://claude.ai/code), Anthropic's agentic coding tool.
 
-Claude Code handled everything from writing the initial Express boilerplate and SQL schema to redesigning the frontend with Tailwind and Framer Motion, fixing JWT auth timing bugs in React, and replacing interval-based polling with the Page Visibility API for more reliable data sync.
+The process was iterative — prompting to build features, debug Azure SQL connectivity, redesign the UI from scratch, and fix tricky problems like race conditions between polling intervals and optimistic UI updates.
+
+Claude Code handled the full stack: Express boilerplate, SQL schema, React pages, Tailwind design system, JWT auth flow, and production deployment to Azure.

@@ -13,6 +13,11 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Prevent iOS Safari from zooming in when inputs are focused */
+  input, textarea, select {
+    font-size: 16px;
+  }
+
   /* Thin custom scrollbar */
   ::-webkit-scrollbar {
     width: 5px;
