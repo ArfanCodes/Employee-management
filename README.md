@@ -1,5 +1,7 @@
 # Staff Leave Management System
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Azure%20Static%20Web%20Apps-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://brave-glacier-08bdffd00.7.azurestaticapps.net)
+
 A full-stack web application for managing employee leave requests, built entirely using [Claude Code](https://claude.ai/code) by Anthropic. The project covers everything from authentication and role-based access to real-time dashboard updates, all deployed on Microsoft Azure.
 
 &nbsp;
