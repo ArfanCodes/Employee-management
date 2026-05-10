@@ -120,7 +120,49 @@ const LeaveHistory = () => {
         </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
+
+          {/* Mobile cards */}
+          <div className="sm:hidden divide-y divide-slate-100">
+            {filtered.map(leave => (
+              <div key={leave.id} className="p-4 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-slate-800 capitalize text-sm">{leave.leave_type} Leave</span>
+                  <StatusBadge status={leave.status} />
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>{fmt(leave.start_date)} → {fmt(leave.end_date)}</span>
+                  <span>{daysBetween(leave.start_date, leave.end_date)} day{daysBetween(leave.start_date, leave.end_date) !== 1 ? 's' : ''}</span>
+                </div>
+                {leave.reason && (
+                  <p className="text-xs text-slate-400 truncate">{leave.reason}</p>
+                )}
+                {leave.rejection_reason && (
+                  <p className="text-xs text-rose-500 italic">"{leave.rejection_reason}"</p>
+                )}
+                {leave.status === 'pending' && (
+                  cancelConfirm === leave.id ? (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-xs text-slate-500">Cancel this request?</span>
+                      <button onClick={() => handleCancel(leave.id)} disabled={cancellingId === leave.id}
+                        className="text-xs font-semibold text-rose-600 hover:text-rose-800 disabled:opacity-50">
+                        {cancellingId === leave.id ? 'Cancelling…' : 'Yes'}
+                      </button>
+                      <button onClick={() => setCancelConfirm(null)}
+                        className="text-xs text-slate-400 hover:text-slate-600">No</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setCancelConfirm(leave.id)}
+                      className="text-xs font-semibold text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-3 py-1.5 rounded-lg transition-colors">
+                      Cancel Request
+                    </button>
+                  )
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-400 uppercase tracking-wide">
@@ -156,25 +198,16 @@ const LeaveHistory = () => {
                         cancelConfirm === leave.id ? (
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs text-slate-500">Sure?</span>
-                            <button
-                              onClick={() => handleCancel(leave.id)}
-                              disabled={cancellingId === leave.id}
-                              className="text-xs font-semibold text-rose-600 hover:text-rose-800 disabled:opacity-50 transition-colors"
-                            >
+                            <button onClick={() => handleCancel(leave.id)} disabled={cancellingId === leave.id}
+                              className="text-xs font-semibold text-rose-600 hover:text-rose-800 disabled:opacity-50 transition-colors">
                               {cancellingId === leave.id ? 'Cancelling…' : 'Yes'}
                             </button>
-                            <button
-                              onClick={() => setCancelConfirm(null)}
-                              className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                              No
-                            </button>
+                            <button onClick={() => setCancelConfirm(null)}
+                              className="text-xs text-slate-400 hover:text-slate-600 transition-colors">No</button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => setCancelConfirm(leave.id)}
-                            className="text-xs font-semibold text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 hover:border-rose-200 px-2.5 py-1 rounded-lg"
-                          >
+                          <button onClick={() => setCancelConfirm(leave.id)}
+                            className="text-xs font-semibold text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 hover:border-rose-200 px-2.5 py-1 rounded-lg">
                             Cancel
                           </button>
                         )

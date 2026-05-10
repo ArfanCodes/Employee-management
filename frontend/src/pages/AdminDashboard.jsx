@@ -135,18 +135,18 @@ const AdminDashboard = () => {
     <div className="max-w-6xl mx-auto">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Admin Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage leave requests and view employee activity</p>
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Admin Dashboard</h1>
+          <p className="text-slate-500 text-sm mt-1 hidden sm:block">Manage leave requests and view employee activity</p>
         </div>
         <button
           onClick={() => fetchAll({ showSyncBar: true })}
           disabled={syncing}
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-40"
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 hover:text-slate-800 border border-slate-200 px-2.5 sm:px-3 py-2 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-40"
         >
-          <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-          {syncing ? 'Syncing…' : 'Refresh'}
+          <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
+          <span className="hidden sm:inline">{syncing ? 'Syncing…' : 'Refresh'}</span>
         </button>
       </div>
 
@@ -190,10 +190,54 @@ const AdminDashboard = () => {
             ))}
           </div>
 
-          {/* ── Leave Requests table ── */}
+          {/* ── Leave Requests ── */}
           {activeTab === 'leaves' && (
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-              <div className="overflow-x-auto">
+
+              {/* Mobile cards */}
+              <div className="sm:hidden divide-y divide-slate-100">
+                {leaves.length === 0 && (
+                  <p className="py-12 text-center text-slate-400 text-sm">No leave requests found.</p>
+                )}
+                {leaves.map(leave => (
+                  <div key={leave.id} className="p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColor(leave.employee_name)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                          {mkInitials(leave.employee_name)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-800 text-sm truncate">{leave.employee_name}</p>
+                          <p className="text-slate-400 text-xs truncate">{leave.department}</p>
+                        </div>
+                      </div>
+                      <StatusBadge status={leave.status} />
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="capitalize font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">{leave.leave_type}</span>
+                      <span className="text-slate-500">{fmt(leave.start_date)} → {fmt(leave.end_date)} · {daysBetween(leave.start_date, leave.end_date)}d</span>
+                    </div>
+                    {leave.reason && (
+                      <p className="text-xs text-slate-400 truncate">{leave.reason}</p>
+                    )}
+                    {leave.status === 'pending' && (
+                      <div className="flex gap-2 pt-1">
+                        <button onClick={() => handleApprove(leave.id)} disabled={!!actionId}
+                          className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors">
+                          Approve
+                        </button>
+                        <button onClick={() => setRejectModal({ open: true, id: leave.id })} disabled={!!actionId}
+                          className="flex-1 bg-rose-50 text-rose-600 border border-rose-200 py-2 rounded-lg text-xs font-semibold hover:bg-rose-100 disabled:opacity-40 transition-colors">
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-400 uppercase tracking-wide">
@@ -250,10 +294,36 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* ── Employees table ── */}
+          {/* ── Employees ── */}
           {activeTab === 'employees' && (
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-              <div className="overflow-x-auto">
+
+              {/* Mobile cards */}
+              <div className="sm:hidden divide-y divide-slate-100">
+                {employees.length === 0 && (
+                  <p className="py-12 text-center text-slate-400 text-sm">No employees found.</p>
+                )}
+                {employees.map(emp => (
+                  <div key={emp.id} className="flex items-center gap-3 p-4">
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarColor(emp.name)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                      {mkInitials(emp.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm truncate">{emp.name}</p>
+                      <p className="text-slate-400 text-xs truncate">{emp.email}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-medium text-slate-600">{emp.department || '—'}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {new Date(emp.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-400 uppercase tracking-wide">

@@ -8,7 +8,6 @@ import { useAuth } from '../context/AuthContext';
 const Login = () => {
   const [form, setForm]             = useState({ email: '', password: '' });
   const [showPass, setShowPass]     = useState(false);
-  const [showDemo, setShowDemo]     = useState(false);
   const [error, setError]           = useState('');
   const [loading, setLoading]       = useState(false);
   const { login, user, loading: authLoading } = useAuth();
@@ -149,21 +148,6 @@ const Login = () => {
             </Link>
           </p>
 
-          {/* Demo credentials */}
-          <div className="mt-5">
-            <button
-              onClick={() => setShowDemo(p => !p)}
-              className="w-full text-xs text-slate-400 hover:text-slate-600 transition-colors py-2 border border-dashed border-slate-200 rounded-lg"
-            >
-              {showDemo ? 'Hide' : 'View'} demo credentials
-            </button>
-            {showDemo && (
-              <div className="mt-2 p-3.5 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1.5 border border-slate-100">
-                <p><span className="font-semibold text-slate-700">Admin:</span> admin@company.com / Admin@1234</p>
-                <p><span className="font-semibold text-slate-700">Employee:</span> jane@company.com / Admin@1234</p>
-              </div>
-            )}
-          </div>
 
         </div>
       </motion.div>
