@@ -159,38 +159,6 @@ staff-leave-management/
 
 &nbsp;
 
-## Local setup
-
-Clone the repo and install dependencies for both backend and frontend separately.
-
-```bash
-cd backend && npm install
-cd ../frontend && npm install
-```
-
-Copy the example env files and fill in your own values.
-
-```bash
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-```
-
-Run the SQL in `database/schema.sql` against a local SQL Server instance or Azure SQL to create the tables and seed the two default accounts.
-
-Start both servers in separate terminals.
-
-```bash
-# Terminal 1
-cd backend && npm run dev
-
-# Terminal 2
-cd frontend && npm run dev
-```
-
-The frontend runs on `http://localhost:5173`. Default credentials from the seed data are in `database/schema.sql`.
-
-&nbsp;
-
 ## Built with Claude Code
 
 This entire project was written with [Claude Code](https://claude.ai/code), Anthropic's agentic coding tool. The development process involved iterative prompting to build out features, debug Azure connectivity issues, redesign the UI, and solve real-time state management problems like race conditions between polling intervals and optimistic updates.
