@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import {
   Calendar, Clock, ShieldCheck, ArrowRight, CheckCircle,
-  Menu, X, LayoutDashboard, Zap, Users, FileText, Bell,
+  Menu, X, LayoutDashboard, Zap, Users, FileText,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -55,11 +55,6 @@ const MockPreview = () => (
       ))}
     </div>
 
-    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
-      <Bell size={12} className="text-indigo-400" />
-      <p className="text-[11px] text-slate-400">2 requests awaiting your review</p>
-      <span className="ml-auto w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">2</span>
-    </div>
   </div>
 );
 
@@ -73,9 +68,9 @@ const Step = ({ n, title, desc, delay }) => {
       initial={{ opacity: 0, y: 24 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, delay }}
-      className="flex flex-col items-center text-center"
+      className="flex flex-col items-center text-center relative z-10"
     >
-      <div className="w-12 h-12 gradient-bg rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-indigo-200 mb-4">
+      <div className="w-12 h-12 gradient-bg rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-indigo-200 mb-4 ring-4 ring-white">
         {n}
       </div>
       <h3 className="font-bold text-slate-900 mb-2">{title}</h3>
@@ -321,10 +316,10 @@ const Home = () => {
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Up and running in 3 steps</h2>
           </div>
           <div className="relative grid md:grid-cols-3 gap-10">
-            {/* Connector line */}
-            <div className="hidden md:block absolute top-6 left-[17%] right-[17%] h-px bg-gradient-to-r from-indigo-200 via-violet-200 to-indigo-200" />
-            <Step n="1" title="Create your account"     desc="Register in seconds with your name, email, and department."    delay={0}    />
-            <Step n="2" title="Submit a leave request"  desc="Pick the leave type, select dates, add a reason, and send."    delay={0.15} />
+            {/* Connector line — z-0 so it sits behind the numbered boxes */}
+            <div className="hidden md:block absolute top-6 left-[17%] right-[17%] h-px bg-gradient-to-r from-indigo-200 via-violet-300 to-indigo-200 z-0" />
+            <Step n="1" title="Create your account"     desc="Register in seconds with your name, email, and department."       delay={0}    />
+            <Step n="2" title="Submit a leave request"  desc="Pick the leave type, select dates, add a reason, and send."       delay={0.15} />
             <Step n="3" title="Get a decision"          desc="Admin reviews and approves or rejects. You're notified instantly." delay={0.3}  />
           </div>
         </div>
