@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Users,
   LogOut,
+  Home,
 } from 'lucide-react';
 
 const employeeLinks = [
@@ -72,6 +73,18 @@ const Sidebar = ({ mobileOpen, onClose }) => {
 
         {/* Nav links */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          <Link
+            to="/"
+            onClick={onClose}
+            className={`
+              flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+              ${pathname === '/' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'}
+            `}
+          >
+            <Home size={17} />
+            Home
+          </Link>
+          <div className="my-2 border-t border-slate-800" />
           {links.map(({ to, label, icon: Icon }) => {
             const active = isLinkActive(to, pathname, search);
             return (
