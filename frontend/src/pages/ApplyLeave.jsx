@@ -139,13 +139,13 @@ const ApplyLeave = () => {
           {/* Dates */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-3">Date Range</label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-slate-500 mb-1.5 font-medium">Start Date</label>
                 <input
                   type="date" name="start_date" value={form.start_date}
                   onChange={set('start_date')} required min={today}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all appearance-none"
                 />
               </div>
               <div>
@@ -153,7 +153,7 @@ const ApplyLeave = () => {
                 <input
                   type="date" name="end_date" value={form.end_date}
                   onChange={set('end_date')} required min={form.start_date || today}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all appearance-none"
                 />
               </div>
             </div>

@@ -97,26 +97,35 @@ const EmployeeDashboard = () => {
   return (
     <div className="max-w-5xl mx-auto">
 
-      {/* ── Header ── */}
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {getGreeting()}, {user?.name?.split(' ')[0]}!
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            {user?.department ? ` · ${user.department}` : ''}
-          </p>
+      {/* ── Welcome Banner ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="relative rounded-2xl overflow-hidden mb-8 bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-600 shadow-lg shadow-indigo-200"
+      >
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, white 0%, transparent 60%)' }} />
+        <div className="relative px-6 py-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-indigo-200 text-sm font-medium mb-1">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {user?.department ? ` · ${user.department}` : ''}
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              {getGreeting()}, {user?.name?.split(' ')[0]}!
+            </h1>
+            <p className="text-indigo-200 text-sm mt-1">Here's your leave overview for today.</p>
+          </div>
+          <button
+            onClick={() => fetchLeaves({ showSyncBar: true })}
+            disabled={syncing}
+            className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-indigo-100 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-2 rounded-xl transition-all disabled:opacity-50"
+          >
+            <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Syncing…' : 'Refresh'}
+          </button>
         </div>
-        <button
-          onClick={() => fetchLeaves({ showSyncBar: true })}
-          disabled={syncing}
-          className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-indigo-600 border border-slate-200 hover:border-indigo-300 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
-        >
-          <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-          {syncing ? 'Syncing…' : 'Refresh'}
-        </button>
-      </div>
+      </motion.div>
 
       {/* ── Stats ── */}
       <motion.div
@@ -125,12 +134,13 @@ const EmployeeDashboard = () => {
         animate="show"
         className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
       >
-        {cards.map(({ label, value, icon: Icon, iconBg, iconColor, numColor, bg }) => (
+        {cards.map(({ label, value, icon: Icon, iconBg, iconColor, numColor }) => (
           <motion.div
             key={label}
             variants={item}
-            className={`${bg} border border-slate-200 rounded-2xl p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}
+            className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group"
           >
+            <div className="absolute inset-x-0 top-0 h-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity gradient-bg" />
             <div className="flex items-start justify-between">
               <div>
                 <p className={`text-3xl font-bold ${numColor}`}>
