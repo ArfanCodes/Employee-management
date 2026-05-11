@@ -35,9 +35,16 @@ app.use('/api/auth', authRoutes);    // /api/auth/register, /api/auth/login
 app.use('/api/leave', leaveRoutes);  // /api/leave/apply, /api/leave/my-leaves
 app.use('/api/admin', adminRoutes);  // /api/admin/employees, /api/admin/leaves
 
-// Health check — useful for Azure App Service and load balancers
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Staff Leave API is running' });
+// Health check — also pings the DB so external keep-alive pings prevent Azure SQL auto-pause
+app.get('/api/health', async (req, res) => {
+  try {
+    const { getPool } = require('./config/db');
+    const pool = await getPool();
+    await pool.request().query('SELECT 1 AS alive');
+    res.json({ status: 'OK', db: 'connected' });
+  } catch (err) {
+    res.status(503).json({ status: 'ERROR', db: err.message });
+  }
 });
 
 module.exports = app;
