@@ -21,10 +21,19 @@ const config = {
 let pool;
 
 const getPool = async () => {
-  if (!pool) {
-    pool = await sql.connect(config);
-    console.log('Connected to SQL Server');
+  if (pool && pool.connected) {
+    return pool;
   }
+  if (pool && !pool.connected) {
+    try { await pool.close(); } catch (_) {}
+    pool = null;
+  }
+  pool = await sql.connect(config);
+  console.log('Connected to SQL Server');
+  pool.on('error', (err) => {
+    console.error('SQL pool error:', err.message);
+    pool = null;
+  });
   return pool;
 };
 
