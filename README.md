@@ -5,6 +5,11 @@
 A full-stack leave management platform built entirely with [Claude Code](https://claude.ai/code) by Anthropic and deployed on Microsoft Azure.
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Azure%20Static%20Web%20Apps-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://brave-glacier-08bdffd00.7.azurestaticapps.net)
+[![Uptime](https://img.shields.io/badge/Uptime%20Status-Live%20Monitor-brightgreen?style=for-the-badge&logo=statuspage&logoColor=white)](https://stats.uptimerobot.com/k1OfLaiYDk)
+
+&nbsp;
+
+> **Service reliability is a priority.** Uptime is continuously monitored 24/7 via UptimeRobot, with real-time status tracking publicly available at [stats.uptimerobot.com/k1OfLaiYDk](https://stats.uptimerobot.com/k1OfLaiYDk). The system is engineered to ensure zero unplanned downtime — the backend API performs active database keep-alive pings every 10 minutes, preventing cold starts and guaranteeing the service remains responsive for all users at all times.
 
 &nbsp;
 
