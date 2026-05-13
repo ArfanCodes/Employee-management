@@ -2,282 +2,482 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import {
-  Calendar, Clock, ShieldCheck, ArrowRight, CheckCircle,
-  Menu, X, LayoutDashboard, Zap, Users, FileText,
+  Calendar, ClipboardCheck, BarChart2, ShieldCheck,
+  Check, Menu, X, LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-/* ── Step card ───────────────────────────────────────────────────────── */
-const Step = ({ n, title, desc, delay }) => {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-60px' });
+/* ─── Magnetic bento card ─────────────────────────────────────────────────── */
+const BentoCard = ({ className = '', children, delay = 0 }) => {
+  const ref      = useRef(null);
+  const inView   = useInView(ref, { once: true, margin: '-60px' });
+  const [tx, setTx] = useState({ x: 0, y: 0 });
+  const leaving  = useRef(false);
+
+  const onMove = (e) => {
+    leaving.current = false;
+    const r  = e.currentTarget.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width  / 2);
+    const dy = e.clientY - (r.top  + r.height / 2);
+    setTx({ x: dx * 0.04, y: dy * 0.04 });
+  };
+  const onLeave = () => {
+    leaving.current = true;
+    setTx({ x: 0, y: 0 });
+  };
+
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 24 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay }}
-      className="flex flex-col items-center text-center relative z-10"
+      initial={{ opacity: 0, y: 28, filter: 'blur(8px)' }}
+      animate={inView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
+      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={`rounded border border-black/5 bg-white p-10 hover:border-outline-variant/50
+                  transition-colors duration-300 flex flex-col justify-between overflow-hidden ${className}`}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
     >
-      <div className="w-12 h-12 gradient-bg rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-indigo-200 mb-4 ring-4 ring-white">
-        {n}
+      <div
+        style={{
+          transform: `translate(${tx.x}px, ${tx.y}px)`,
+          transition: leaving.current
+            ? 'transform 0.5s cubic-bezier(0.175,0.885,0.32,1.275)'
+            : 'transform 0.1s ease-out',
+        }}
+      >
+        {children}
       </div>
-      <h3 className="font-bold text-slate-900 mb-2">{title}</h3>
-      <p className="text-slate-500 text-sm leading-relaxed max-w-[200px]">{desc}</p>
     </motion.div>
   );
 };
 
-/* ── Feature card ────────────────────────────────────────────────────── */
-const FeatureCard = ({ icon: Icon, title, desc, gradient, delay }) => {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-60px' });
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 24 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay }}
-      className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group"
-    >
-      <div className={`w-12 h-12 ${gradient} rounded-2xl flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform duration-300`}>
-        <Icon size={22} className="text-white" />
-      </div>
-      <h3 className="text-slate-900 font-bold text-base mb-2">{title}</h3>
-      <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
-    </motion.div>
-  );
-};
-
-/* ── Main component ──────────────────────────────────────────────────── */
+/* ─── Main component ──────────────────────────────────────────────────────── */
 const Home = () => {
-  const { user }                        = useAuth();
-  const [scrolled, setScrolled]         = useState(false);
-  const [mobileOpen, setMobileOpen]     = useState(false);
+  const { user } = useAuth();
+  const [scrolled,    setScrolled]   = useState(false);
+  const [mobileOpen,  setMobileOpen] = useState(false);
+  const [activeSection, setActive]   = useState('');
 
+  const dashHref = user?.role === 'admin' ? '/admin' : '/dashboard';
+
+  /* nav shadow on scroll */
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const fn = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  const dashboardHref = user?.role === 'admin' ? '/admin' : '/dashboard';
+  /* active nav link via IntersectionObserver */
+  useEffect(() => {
+    const sections = document.querySelectorAll('section[id]');
+    const obs = new IntersectionObserver(
+      (entries) => entries.forEach(e => e.isIntersecting && setActive(e.target.id)),
+      { rootMargin: '0px', threshold: 0.45 },
+    );
+    sections.forEach(s => obs.observe(s));
+    return () => obs.disconnect();
+  }, []);
+
+  const navLink = (id, label) => (
+    <a
+      href={`#${id}`}
+      className={`nav-underline text-xs font-semibold tracking-widest uppercase
+                  transition-colors duration-200 pb-1
+                  ${activeSection === id
+                    ? 'active text-primary'
+                    : 'text-on-surface-variant hover:text-primary'}`}
+    >
+      {label}
+    </a>
+  );
 
   return (
-    <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-surface text-on-surface font-sans overflow-x-hidden">
 
-      {/* ── Navbar ───────────────────────────────────────────────────────── */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-white/95 backdrop-blur-xl shadow-[0_1px_24px_0_rgba(99,102,241,0.10)] border-b border-slate-100'
-          : 'bg-transparent'
-      }`}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-xl gradient-bg flex items-center justify-center shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-                <Calendar size={15} className="text-white" />
-              </div>
-              <span className="text-[15px] font-bold tracking-tight text-slate-900">
-                Leave<span className="gradient-text">MS</span>
-              </span>
-            </Link>
+      {/* ── Sticky nav ─────────────────────────────────────────────────────── */}
+      <header className={`sticky top-0 z-50 transition-all duration-300
+        ${scrolled
+          ? 'bg-surface/95 backdrop-blur-md border-b border-outline-variant/30 shadow-sm'
+          : 'bg-surface/95 backdrop-blur-md border-b border-outline-variant/20'}`}
+      >
+        <div className="max-w-screen-xl mx-auto px-6 flex items-center justify-between h-16">
 
-            <nav className="hidden md:flex items-center gap-1">
-              <a href="#features" className="text-sm text-slate-500 hover:text-slate-900 px-3.5 py-2 rounded-lg hover:bg-slate-100/70 transition-all font-medium">Features</a>
-              <a href="#how-it-works" className="text-sm text-slate-500 hover:text-slate-900 px-3.5 py-2 rounded-lg hover:bg-slate-100/70 transition-all font-medium">How it works</a>
-              <div className="w-px h-4 bg-slate-200 mx-1" />
-              {user ? (
-                <Link to={dashboardHref} className="ml-1 text-sm gradient-bg text-white px-4 py-2.5 rounded-xl font-semibold hover:opacity-90 hover:shadow-lg hover:shadow-indigo-200/60 hover:-translate-y-px transition-all duration-200 flex items-center gap-1.5">
-                  <LayoutDashboard size={14} /> Dashboard
-                </Link>
-              ) : (
-                <>
-                  <Link to="/login" className="text-sm text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-100/70 transition-all font-medium">Sign In</Link>
-                  <Link to="/register" className="ml-1 text-sm gradient-bg text-white px-4 py-2.5 rounded-xl font-semibold hover:opacity-90 hover:shadow-lg hover:shadow-indigo-200/60 hover:-translate-y-px transition-all duration-200 flex items-center gap-1.5">
-                    Get Started <ArrowRight size={14} />
-                  </Link>
-                </>
-              )}
-            </nav>
+          {/* Logo */}
+          <Link to="/" className="text-xl font-bold tracking-tight text-on-surface">
+            LeaveMS
+          </Link>
 
-            <button className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 transition-colors text-slate-600" onClick={() => setMobileOpen(o => !o)}>
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
-        </div>
+          {/* Desktop nav */}
+          <nav aria-label="Main navigation" className="hidden md:flex items-center gap-6">
+            {navLink('features', 'Features')}
+            {navLink('how-it-works', 'How It Works')}
+          </nav>
 
-        {/* Mobile menu */}
-        <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${mobileOpen ? 'max-h-72 opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="bg-white border-t border-slate-100 px-6 py-4 flex flex-col gap-1 shadow-xl shadow-slate-100">
-            <a href="#features" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-slate-600 hover:text-indigo-600 px-3 py-3 rounded-xl hover:bg-indigo-50 transition-colors">Features</a>
-            <a href="#how-it-works" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-slate-600 hover:text-indigo-600 px-3 py-3 rounded-xl hover:bg-indigo-50 transition-colors">How it works</a>
+          {/* Desktop CTA */}
+          <div className="hidden md:flex items-center gap-4">
             {user ? (
-              <Link to={dashboardHref} onClick={() => setMobileOpen(false)} className="mt-1 text-sm gradient-bg text-white px-4 py-3 rounded-xl font-semibold text-center flex items-center justify-center gap-2">
-                <LayoutDashboard size={15} /> Go to Dashboard
+              <Link
+                to={dashHref}
+                className="bg-primary text-on-primary text-xs font-semibold tracking-widest uppercase
+                           px-4 py-2 rounded hover:bg-primary-container transition-all duration-200
+                           flex items-center gap-2 cta-shimmer"
+              >
+                <LayoutDashboard size={14} /> Dashboard
               </Link>
             ) : (
               <>
-                <Link to="/login" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-slate-600 hover:text-indigo-600 px-3 py-3 rounded-xl hover:bg-indigo-50 transition-colors">Sign In</Link>
-                <Link to="/register" onClick={() => setMobileOpen(false)} className="mt-1 text-sm gradient-bg text-white px-4 py-3 rounded-xl font-semibold text-center">Get Started →</Link>
+                <Link
+                  to="/login"
+                  className="text-xs font-semibold tracking-widest uppercase text-on-surface-variant
+                             hover:text-primary transition-colors duration-200"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="bg-primary text-on-primary text-xs font-semibold tracking-widest uppercase
+                             px-4 py-2 rounded hover:scale-105 transition-transform duration-200 cta-shimmer"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            aria-label="Toggle menu"
+            onClick={() => setMobileOpen(o => !o)}
+            className="md:hidden w-9 h-9 flex items-center justify-center rounded hover:bg-surface-container
+                       transition-colors text-on-surface-variant"
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+
+        {/* Mobile dropdown */}
+        <div className={`md:hidden overflow-hidden transition-all duration-300
+          ${mobileOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'}`}
+        >
+          <div className="bg-surface border-t border-outline-variant/20 px-6 py-4 flex flex-col gap-1">
+            <a href="#features"    onClick={() => setMobileOpen(false)}
+               className="text-sm font-medium text-on-surface-variant hover:text-primary px-3 py-3 rounded hover:bg-surface-container transition-colors">
+              Features
+            </a>
+            <a href="#how-it-works" onClick={() => setMobileOpen(false)}
+               className="text-sm font-medium text-on-surface-variant hover:text-primary px-3 py-3 rounded hover:bg-surface-container transition-colors">
+              How It Works
+            </a>
+            {user ? (
+              <Link to={dashHref} onClick={() => setMobileOpen(false)}
+                    className="mt-1 bg-primary text-on-primary text-sm font-semibold px-4 py-3 rounded text-center flex items-center justify-center gap-2">
+                <LayoutDashboard size={15} /> Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" onClick={() => setMobileOpen(false)}
+                      className="text-sm font-medium text-on-surface-variant hover:text-primary px-3 py-3 rounded hover:bg-surface-container transition-colors">
+                  Sign In
+                </Link>
+                <Link to="/register" onClick={() => setMobileOpen(false)}
+                      className="mt-1 bg-primary text-on-primary text-sm font-semibold px-4 py-3 rounded text-center">
+                  Get Started
+                </Link>
               </>
             )}
           </div>
         </div>
       </header>
 
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative px-6 py-24 md:py-36 text-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/80 via-white to-violet-50/40 pointer-events-none" />
-        <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-gradient-to-br from-indigo-200/30 to-violet-200/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-[-80px] left-[-80px] w-[400px] h-[400px] bg-gradient-to-tr from-indigo-100/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+      {/* ── Hero ───────────────────────────────────────────────────────────── */}
+      <section
+        id="hero"
+        className="bg-[#121212] bg-grid-dark text-inverse-on-surface pt-24 pb-32 relative overflow-hidden"
+      >
+        {/* Blob 1 */}
+        <div
+          className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full pointer-events-none opacity-50 z-0 blob-1"
+          style={{ background: 'radial-gradient(circle, rgba(90,103,216,0.15) 0%, transparent 70%)' }}
+        />
+        {/* Blob 2 */}
+        <div
+          className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none opacity-50 z-0 blob-2"
+          style={{ background: 'radial-gradient(circle, rgba(90,103,216,0.15) 0%, transparent 70%)' }}
+        />
 
-        <div className="relative max-w-3xl mx-auto">
-          {user ? (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-              <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                Signed in as {user.name}
-              </div>
-              <h1 className="text-5xl sm:text-6xl font-extrabold text-slate-900 leading-[1.1] tracking-tight">
-                Welcome back,{' '}
-                <span className="gradient-text">{user.name.split(' ')[0]}</span>
-              </h1>
-              <p className="mt-5 text-slate-500 text-lg leading-relaxed max-w-xl mx-auto">
-                Your leave management dashboard is ready. Check your requests, apply for leave, or review your history.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3 justify-center">
-                <Link to={dashboardHref} className="inline-flex items-center gap-2 gradient-bg text-white px-7 py-3.5 rounded-xl font-semibold text-sm hover:opacity-90 transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-200">
-                  <LayoutDashboard size={16} /> Go to Dashboard
+        <div className="max-w-screen-xl mx-auto px-6 relative z-10 flex flex-col items-center text-center">
+          <motion.span
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="text-xs font-semibold tracking-[0.2em] uppercase text-secondary-fixed-dim mb-4"
+          >
+            Enterprise Leave Management
+          </motion.span>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-white max-w-4xl mb-6
+                       leading-[1.15] tracking-[-0.02em]"
+          >
+            {user
+              ? <>Welcome back, <span className="text-primary-fixed">{user.name.split(' ')[0]}</span>.</>
+              : 'Time is your most valuable asset. Manage it with intent.'}
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="text-lg text-secondary-fixed-dim max-w-2xl mb-10 leading-relaxed"
+          >
+            {user
+              ? 'Your workspace is ready. Check leave status, apply for time off, or review your team.'
+              : 'A high-performance leave management suite designed for quiet authority and absolute clarity. Streamline approvals, synchronise team calendars, and regain focus.'}
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-wrap gap-3 justify-center"
+          >
+            {user ? (
+              <Link
+                to={dashHref}
+                className="bg-primary text-on-primary text-xs font-semibold tracking-widest uppercase
+                           px-6 py-3 rounded hover:bg-primary-container transition-all duration-200 cta-shimmer"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/register"
+                  className="bg-primary text-on-primary text-xs font-semibold tracking-widest uppercase
+                             px-6 py-3 rounded hover:bg-primary-container transition-all duration-200 cta-shimmer"
+                >
+                  Get Started Free
                 </Link>
-                <a href="#features" className="inline-flex items-center gap-2 border border-slate-200 bg-white text-slate-700 px-6 py-3.5 rounded-xl font-semibold text-sm hover:bg-slate-50 transition-colors shadow-sm">
-                  Explore Features
-                </a>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-              <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-                <Zap size={11} className="fill-indigo-600" /> Built for modern teams
-              </div>
-              <h1 className="text-5xl sm:text-6xl font-extrabold text-slate-900 leading-[1.1] tracking-tight">
-                Manage staff leave{' '}
-                <span className="gradient-text">with clarity</span>
-              </h1>
-              <p className="mt-5 text-slate-500 text-lg leading-relaxed max-w-xl mx-auto">
-                One platform where employees request leave and admins approve, reject, and track every decision — no spreadsheets, no confusion.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3 justify-center">
-                <Link to="/register" className="inline-flex items-center gap-2 gradient-bg text-white px-7 py-3.5 rounded-xl font-semibold text-sm hover:opacity-90 transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-200">
-                  Get Started Free <ArrowRight size={15} />
-                </Link>
-                <Link to="/login" className="inline-flex items-center gap-2 border border-slate-200 bg-white text-slate-700 px-6 py-3.5 rounded-xl font-semibold text-sm hover:bg-slate-50 transition-colors shadow-sm">
+                <Link
+                  to="/login"
+                  className="border border-white/20 text-white text-xs font-semibold tracking-widest uppercase
+                             px-6 py-3 rounded hover:bg-white/5 transition-all duration-200"
+                >
                   Sign In
                 </Link>
+              </>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Bento features ─────────────────────────────────────────────────── */}
+      <section id="features" className="py-32 bg-surface">
+        <div className="max-w-screen-xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+            {/* Card 1 — wide */}
+            <BentoCard className="md:col-span-8" delay={0}>
+              <Calendar size={32} className="text-primary mb-4" />
+              <h3 className="text-xl font-semibold text-on-surface mb-2 tracking-tight">
+                Synchronised Team Calendars
+              </h3>
+              <p className="text-on-surface-variant text-sm leading-relaxed max-w-lg">
+                Eliminate scheduling conflicts with a unified view of team availability.
+                Integrates with your existing enterprise calendaring workflow.
+              </p>
+              <div className="mt-8 w-full h-44 bg-surface-container rounded border border-black/5 overflow-hidden">
+                <img
+                  alt="Calendar sync"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-9hpx2NqMQwHRVIse5_ah80iUd9AsK3EolZNGY85BJCiEHpgOXpJaVzxK-MOlPldBIC9I6r1NFmKtHsyqrU5mE6n_SMeGxqOKp9DccWR_DTdPI3FIppt9QAFrbD7PNVY_bX8ErBnR-hkDVbte4sdzPnap1jXz9tdpWPFWDIkT-wblA802nLAShTsKXc2pit19CPyLisvZqjm8OSQvx-DX0ZUrLA0FQSHnIAW8ifQJU68I1L9dR4R4q2TkNnYQeWo9dvBjYRpzM4lQ"
+                  className="w-full h-full object-cover opacity-80 mix-blend-multiply"
+                />
               </div>
-              <div className="mt-8 flex flex-wrap justify-center gap-5 text-sm text-slate-500">
-                {['No setup required', 'Works on any device', 'Secure & private'].map(item => (
-                  <span key={item} className="flex items-center gap-1.5">
-                    <CheckCircle size={14} className="text-emerald-500" /> {item}
-                  </span>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </div>
-      </section>
+            </BentoCard>
 
-      {/* ── Stats strip ──────────────────────────────────────────────────── */}
-      <section className="border-y border-slate-100 bg-white py-10 px-6">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-          {[
-            { value: '< 2 min',   label: 'To submit a request' },
-            { value: 'Real-time', label: 'Status updates'       },
-            { value: '99.9%',     label: 'Uptime monitored'     },
-            { value: '2 roles',   label: 'Employee & Admin'     },
-          ].map(({ value, label }) => (
-            <div key={label} className="text-center">
-              <p className="text-2xl font-extrabold gradient-text">{value}</p>
-              <p className="text-slate-500 text-sm mt-1">{label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            {/* Card 2 */}
+            <BentoCard className="md:col-span-4" delay={0.08}>
+              <ClipboardCheck size={32} className="text-primary mb-4" />
+              <h3 className="text-xl font-semibold text-on-surface mb-2 tracking-tight">
+                Automated Approvals
+              </h3>
+              <p className="text-on-surface-variant text-sm leading-relaxed">
+                Define routing logic. Auto-approve standard requests while flagging
+                exceptions for managerial review.
+              </p>
+            </BentoCard>
 
-      {/* ── Features ─────────────────────────────────────────────────────── */}
-      <section id="features" className="bg-slate-50 px-6 py-24">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3">Features</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Everything your team needs</h2>
-            <p className="text-slate-500 mt-3 max-w-xl mx-auto">From applying for leave to admin approvals — all in one clean interface.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { icon: FileText,    title: 'Apply in Minutes', desc: 'Pick type, dates, and reason. Submitted instantly.',        gradient: 'bg-gradient-to-br from-indigo-500 to-indigo-600', delay: 0    },
-              { icon: Clock,       title: 'Real-Time Status', desc: 'Track every request from pending to decision, live.',        gradient: 'bg-gradient-to-br from-violet-500 to-violet-600', delay: 0.1  },
-              { icon: ShieldCheck, title: 'Admin Control',    desc: 'Approve or reject with a reason. Full audit trail.',         gradient: 'bg-gradient-to-br from-emerald-500 to-teal-600',  delay: 0.2  },
-              { icon: Users,       title: 'Team Overview',    desc: 'Admins see every employee and request in one place.',        gradient: 'bg-gradient-to-br from-rose-500 to-pink-600',     delay: 0.3  },
-            ].map(f => <FeatureCard key={f.title} {...f} />)}
-          </div>
-        </div>
-      </section>
+            {/* Card 3 */}
+            <BentoCard className="md:col-span-4" delay={0.16}>
+              <BarChart2 size={32} className="text-primary mb-4" />
+              <h3 className="text-xl font-semibold text-on-surface mb-2 tracking-tight">
+                Compliance Analytics
+              </h3>
+              <p className="text-on-surface-variant text-sm leading-relaxed">
+                Real-time reporting on accruals, utilisation rates, and statutory
+                compliance across your organisation.
+              </p>
+            </BentoCard>
 
-      {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="bg-white px-6 py-24">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3">How it works</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Up and running in 3 steps</h2>
-          </div>
-          <div className="relative grid md:grid-cols-3 gap-10">
-            <div className="hidden md:block absolute top-6 left-[17%] right-[17%] h-px bg-gradient-to-r from-indigo-200 via-violet-300 to-indigo-200 z-0" />
-            <Step n="1" title="Create your account"    desc="Register in seconds with your name, email, and department."       delay={0}    />
-            <Step n="2" title="Submit a leave request" desc="Pick the leave type, select dates, add a reason, and send."       delay={0.15} />
-            <Step n="3" title="Get a decision"         desc="Admin reviews and approves or rejects. You're notified instantly." delay={0.3}  />
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA Banner ───────────────────────────────────────────────────── */}
-      {!user && (
-        <section className="px-6 py-10 bg-slate-50">
-          <div className="max-w-3xl mx-auto">
-            <div className="gradient-bg rounded-3xl px-8 py-12 text-center relative overflow-hidden shadow-2xl shadow-indigo-300/30">
-              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 0%, transparent 60%), radial-gradient(circle at 80% 20%, white 0%, transparent 50%)' }} />
-              <div className="relative">
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-3">Ready to ditch the spreadsheets?</h2>
-                <p className="text-indigo-200 mb-8 text-base">Join your team on LeaveMS — it takes less than a minute.</p>
-                <div className="flex flex-wrap gap-3 justify-center">
-                  <Link to="/register" className="inline-flex items-center gap-2 bg-white text-indigo-600 px-7 py-3.5 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-lg">
-                    Get Started Free <ArrowRight size={15} />
-                  </Link>
-                  <Link to="/login" className="inline-flex items-center gap-2 border border-white/30 text-white px-6 py-3.5 rounded-xl font-semibold text-sm hover:bg-white/10 transition-colors">
-                    Sign In
-                  </Link>
+            {/* Card 4 — wide */}
+            <BentoCard className="md:col-span-8" delay={0.24}>
+              <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                <div className="flex-1">
+                  <ShieldCheck size={32} className="text-primary mb-4" />
+                  <h3 className="text-xl font-semibold text-on-surface mb-2 tracking-tight">
+                    Enterprise-Grade Security
+                  </h3>
+                  <p className="text-on-surface-variant text-sm leading-relaxed">
+                    Role-based access control and comprehensive audit logging ensure
+                    data integrity for every request.
+                  </p>
+                </div>
+                <div className="w-full md:w-2/5 h-36 bg-surface-container rounded border border-black/5 overflow-hidden flex-shrink-0">
+                  <img
+                    alt="Security"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa13zUZZJiJSkhvc3awm0dAPiNlsmgu5kTemqwviDRRgYALn7a8var2Y-pzUQYgqgh45nzoUZy3iLlH0vn1gC_AlfVSD80yJ_dmny7VdjJs-8UKBIjQKar5spQGtBlrxpgSYqmwxNLtZaaA6WcCQ8kzNr92OVHG9tnh7rNQ1u9ywGG_g_8Y9S7mAPjeFQnSMygTfVzNSG7upTp7O3EFq6AzRDfKSLLeI_Yv8kaH0OScuKTzSVUZayWGKrhWDp9QoQ_nI7Eu4QeKS-w"
+                    className="w-full h-full object-cover opacity-80 mix-blend-multiply"
+                  />
                 </div>
               </div>
-            </div>
+            </BentoCard>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── Editorial split ─────────────────────────────────────────────────── */}
+      <section
+        id="how-it-works"
+        className="py-32 bg-surface-container-low border-y border-outline-variant/20"
+      >
+        <div className="max-w-screen-xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+
+            <motion.div
+              initial={{ opacity: 0, x: -32 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <h2 className="text-3xl font-semibold text-on-surface mb-4 tracking-tight leading-snug">
+                Designed for Quiet Authority
+              </h2>
+              <p className="text-on-surface-variant leading-relaxed mb-6">
+                We reject cluttered interfaces and arbitrary notifications. LeaveMS is
+                architected to provide exactly what you need, precisely when you need it,
+                and nothing more. The result is a calm, focused workspace that respects
+                your time.
+              </p>
+              <ul className="space-y-3 mb-8">
+                {[
+                  'Zero-friction request flows',
+                  'Context-aware approval routing',
+                  'Immutable audit trails',
+                ].map(item => (
+                  <li key={item} className="flex items-center gap-3">
+                    <Check size={18} className="text-primary flex-shrink-0" />
+                    <span className="text-on-surface text-sm">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/register"
+                className="inline-block bg-primary text-on-primary text-xs font-semibold
+                           tracking-widest uppercase px-5 py-2.5 rounded hover:bg-primary-container
+                           transition-all duration-200 cta-shimmer"
+              >
+                Start for free
+              </Link>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 32 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded border border-black/5 overflow-hidden h-96 relative"
+            >
+              <img
+                alt="Modern office interior"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6UI_WZuJkgub24cqLvVXslNaTLWCAbhjQAjBWkhOZkqHJFBPlIB8OYQyEnp5IJk5_Ktj_6RSB-n4ZbyWGzbUxTXNv8psg7hWGwxXUnn2samL6zpYVq3sFtwGtzvYK4c6KB2jfDuhdL1aDH-c8CysNka-TrssNBJXGxdbAvZkh06o9Vt6JeEjE713biKxHsOi1wIva5-7cEN_HO7qmvLc1r-dhtk3iA_cPrfzpdnw1TIRHQNF0edrNfTwnJCxMqQMtsC96NPAcatAk"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 border border-black/5 rounded pointer-events-none" />
+            </motion.div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA banner ─────────────────────────────────────────────────────── */}
+      {!user && (
+        <section className="bg-[#121212] bg-grid-dark text-inverse-on-surface py-24 relative overflow-hidden">
+          <div className="max-w-screen-xl mx-auto px-6 relative z-10 text-center flex flex-col items-center">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="text-3xl font-semibold text-white mb-4 tracking-tight"
+            >
+              Ready to restore focus?
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="text-secondary-fixed-dim text-lg max-w-xl mb-8 leading-relaxed"
+            >
+              Deploy LeaveMS across your organisation in minutes. Start managing time
+              with intent.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.45, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-wrap gap-3 justify-center"
+            >
+              <Link
+                to="/register"
+                className="bg-primary text-on-primary text-xs font-semibold tracking-widest uppercase
+                           px-6 py-3 rounded hover:bg-primary-container transition-all duration-200 cta-shimmer"
+              >
+                Get Started Free
+              </Link>
+              <Link
+                to="/login"
+                className="border border-white/20 text-white text-xs font-semibold tracking-widest uppercase
+                           px-6 py-3 rounded hover:bg-white/5 transition-all duration-200"
+              >
+                Sign In
+              </Link>
+            </motion.div>
           </div>
         </section>
       )}
 
-      {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-slate-100 py-8 px-6 bg-white">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg gradient-bg flex items-center justify-center">
-              <Calendar size={13} className="text-white" />
-            </div>
-            <span className="text-sm font-bold text-slate-700">Leave<span className="gradient-text">MS</span></span>
-          </div>
-          <p className="text-sm text-slate-400 text-center">&copy; 2026 Arfan. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <a href="#features" className="text-sm text-slate-400 hover:text-slate-700 transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm text-slate-400 hover:text-slate-700 transition-colors">How it works</a>
-          </div>
+      {/* ── Footer ─────────────────────────────────────────────────────────── */}
+      <footer className="bg-surface-container-low border-t border-outline-variant/20 py-10 px-6">
+        <div className="max-w-screen-xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <span className="text-xl font-bold text-on-surface tracking-tight">LeaveMS</span>
+          <p className="text-sm text-on-surface-variant">
+            &copy; {new Date().getFullYear()} LeaveMS Suite. All rights reserved.
+          </p>
+          <nav className="flex gap-6">
+            <a href="#features"     className="text-xs font-semibold tracking-widest uppercase text-on-surface-variant hover:text-primary transition-colors duration-200">Features</a>
+            <a href="#how-it-works" className="text-xs font-semibold tracking-widest uppercase text-on-surface-variant hover:text-primary transition-colors duration-200">How It Works</a>
+            <Link to="/login"       className="text-xs font-semibold tracking-widest uppercase text-on-surface-variant hover:text-primary transition-colors duration-200">Sign In</Link>
+          </nav>
         </div>
       </footer>
+
     </div>
   );
 };

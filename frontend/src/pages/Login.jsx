@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-const Login = () => {
-  const [form, setForm]             = useState({ email: '', password: '' });
-  const [showPass, setShowPass]     = useState(false);
-  const [error, setError]           = useState('');
-  const [loading, setLoading]       = useState(false);
-  const [waking, setWaking]         = useState(false);
-  const { login, user, loading: authLoading } = useAuth();
-  const navigate                    = useNavigate();
+const ease = [0.16, 1, 0.3, 1];
 
-  // Navigate once auth state is committed (also handles already-logged-in)
+const Login = () => {
+  const [form, setForm]         = useState({ email: '', password: '' });
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [waking, setWaking]     = useState(false);
+  const { login, user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (!authLoading && user) {
       navigate(user.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
@@ -34,7 +35,7 @@ const Login = () => {
         const res = await api.post('/auth/login', form);
         login(res.data.user, res.data.token);
       } catch (err) {
-        const isNetworkError = !err.response; // server asleep or timed out
+        const isNetworkError = !err.response;
         if (isNetworkError && attempt < 4) {
           setWaking(true);
           await new Promise(r => setTimeout(r, 6000));
@@ -55,127 +56,216 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-[#121212] bg-grid-dark">
 
-      {/* ── Left gradient panel ─────────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-1/2 gradient-bg flex-col justify-between p-12">
+      {/* ── Left branding panel ─────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, x: -28 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, ease }}
+        className="hidden md:flex flex-1 flex-col justify-between px-16 py-12 relative"
+      >
+        {/* Back link */}
         <Link
           to="/"
-          className="text-indigo-200 hover:text-white text-sm flex items-center gap-1.5 transition-colors w-fit"
+          className="text-xs font-semibold tracking-widest uppercase text-white/40
+                     hover:text-white/80 transition-colors duration-200 w-fit"
         >
-          <ArrowLeft size={14} /> Back to home
+          ← LeaveMS
         </Link>
 
-        <div>
-          <p className="text-4xl font-extrabold text-white tracking-tight">LeaveMS</p>
-          <blockquote className="mt-5 text-indigo-200 text-lg leading-relaxed max-w-xs">
-            "Managing leave has never been this simple. Our whole team is finally on the same page."
-          </blockquote>
-          <p className="mt-3 text-indigo-300 text-sm font-semibold">— HR Manager, TechCorp</p>
+        {/* Brand copy */}
+        <div className="max-w-sm">
+          <h1 className="text-5xl font-semibold text-white tracking-tight mb-6">
+            LeaveMS
+          </h1>
+          <p className="text-white/50 text-lg leading-relaxed mb-10">
+            Enterprise-grade suite for managing workforce availability with
+            precision and quiet authority.
+          </p>
+
+          <div className="space-y-4 border-t border-white/10 pt-8">
+            <div className="flex items-center gap-3">
+              <ShieldCheck size={18} className="text-inverse-primary flex-shrink-0" />
+              <span className="text-white/60 text-sm">Secure &amp; Encrypted Infrastructure</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Building2 size={18} className="text-inverse-primary flex-shrink-0" />
+              <span className="text-white/60 text-sm">Built for enterprise teams</span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex gap-6 text-indigo-300 text-sm font-medium">
+        {/* Bottom tagline */}
+        <div className="flex gap-8 text-white/25 text-xs font-semibold tracking-widest uppercase">
           <span>Secure</span>
           <span>Fast</span>
           <span>Reliable</span>
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Right form panel ────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, x: 24 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="flex-1 flex flex-col justify-center px-8 sm:px-16 py-12 bg-white"
-      >
-        <div className="max-w-sm w-full mx-auto">
+      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 md:px-16 relative z-10">
 
+        {/* Mobile back link */}
+        <div className="md:hidden w-full max-w-[440px] mb-8">
           <Link
             to="/"
-            className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center gap-1.5 mb-8 lg:hidden transition-colors"
+            className="text-xs font-semibold tracking-widest uppercase text-white/40
+                       hover:text-white/70 transition-colors duration-200"
           >
-            <ArrowLeft size={14} /> Back
+            ← LeaveMS
           </Link>
+        </div>
 
+        {/* Glassmorphism card */}
+        <motion.div
+          initial={{ opacity: 0, y: 32, filter: 'blur(12px)' }}
+          animate={{ opacity: 1, y: 0,  filter: 'blur(0px)'  }}
+          transition={{ duration: 0.55, delay: 0.15, ease }}
+          className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-10
+                     w-full max-w-[440px] shadow-2xl shadow-black/50"
+        >
+          {/* Heading */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h1>
-            <p className="text-slate-500 text-sm mt-1.5">Sign in to your account to continue</p>
+            <h2 className="text-2xl font-semibold text-white tracking-tight">Sign In</h2>
+            <p className="text-white/40 text-sm mt-1">Access your secure workspace</p>
           </div>
 
+          {/* Waking banner */}
           {waking && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl mb-5 text-sm font-medium flex items-center gap-2.5">
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-amber-500/10 border border-amber-400/30 text-amber-300
+                         px-4 py-3 rounded-lg mb-6 text-sm font-medium flex items-center gap-2.5"
+            >
               <span className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
               Server is waking up from sleep, please wait…
-            </div>
+            </motion.div>
           )}
 
+          {/* Error banner */}
           {error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl mb-5 text-sm font-medium">
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-500/10 border border-red-400/30 text-red-300
+                         px-4 py-3 rounded-lg mb-6 text-sm font-medium"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+
             {/* Email */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email address</label>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.35, ease }}
+            >
+              <label
+                htmlFor="email"
+                className="block text-xs font-semibold tracking-widest uppercase
+                           text-white/50 mb-2"
+              >
+                Work Email
+              </label>
               <div className="relative">
-                <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                 <input
-                  type="email" name="email" value={form.email}
-                  onChange={handleChange} required
-                  placeholder="you@company.com"
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all placeholder:text-slate-300"
+                  id="email" type="email" name="email"
+                  value={form.email} onChange={handleChange} required
+                  placeholder="name@company.com"
+                  className="w-full bg-black/20 border border-white/10 rounded-lg
+                             pl-10 pr-4 py-3 text-sm text-white placeholder:text-white/20
+                             focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20
+                             transition-colors duration-200"
                 />
               </div>
-            </div>
+            </motion.div>
 
             {/* Password */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.42, ease }}
+            >
+              <label
+                htmlFor="password"
+                className="block text-xs font-semibold tracking-widest uppercase
+                           text-white/50 mb-2"
+              >
+                Password
+              </label>
               <div className="relative">
-                <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                 <input
+                  id="password"
                   type={showPass ? 'text' : 'password'}
                   name="password" value={form.password}
                   onChange={handleChange} required
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-11 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all placeholder:text-slate-300"
+                  className="w-full bg-black/20 border border-white/10 rounded-lg
+                             pl-10 pr-11 py-3 text-sm text-white placeholder:text-white/20
+                             focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20
+                             transition-colors duration-200"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(p => !p)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30
+                             hover:text-white/60 transition-colors"
                 >
-                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Submit */}
-            <button
-              type="submit" disabled={loading}
-              className="w-full gradient-bg text-white py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-all hover:-translate-y-0.5 active:scale-[0.98] shadow-md shadow-indigo-200 mt-1"
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.49, ease }}
+              type="submit"
+              disabled={loading}
+              className="w-full bg-white text-[#121212] py-3.5 px-4 rounded-lg
+                         text-xs font-semibold tracking-widest uppercase
+                         flex items-center justify-center gap-2
+                         hover:bg-inverse-on-surface disabled:opacity-40
+                         transition-all duration-200 group mt-2"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <>
+                  <span className="w-4 h-4 border-2 border-[#121212] border-t-transparent rounded-full animate-spin" />
                   {waking ? 'Waking server…' : 'Signing in…'}
-                </span>
-              ) : 'Sign In'}
-            </button>
+                </>
+              ) : (
+                <>
+                  Continue to Workspace
+                  <ArrowRight
+                    size={14}
+                    className="group-hover:translate-x-0.5 transition-transform duration-200"
+                  />
+                </>
+              )}
+            </motion.button>
+
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-6">
-            Don&apos;t have an account?{' '}
-            <Link to="/register" className="text-indigo-600 font-semibold hover:underline">
+          {/* Footer */}
+          <p className="text-center text-xs text-white/30 mt-7">
+            No account?{' '}
+            <Link
+              to="/register"
+              className="text-inverse-primary hover:text-white transition-colors duration-200 font-semibold"
+            >
               Register here
             </Link>
           </p>
-
-
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 };

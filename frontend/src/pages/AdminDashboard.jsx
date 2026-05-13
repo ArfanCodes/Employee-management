@@ -14,15 +14,17 @@ const daysBetween = (s, e) =>
 const mkInitials = (name) =>
   name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?';
 
-const COLORS = [
-  'from-indigo-500 to-violet-500', 'from-emerald-500 to-teal-500',
-  'from-rose-500 to-pink-500',     'from-amber-500 to-orange-500',
+const AVATAR_COLORS = [
+  'from-primary to-primary-container',
+  'from-emerald-500 to-teal-500',
+  'from-rose-500 to-pink-500',
+  'from-amber-500 to-orange-500',
   'from-sky-500 to-blue-500',
 ];
-const avatarColor = (name) => COLORS[(name?.charCodeAt(0) ?? 0) % COLORS.length];
+const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length];
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
-const cardItem   = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
+const cardItem   = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
 const AdminDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,8 +38,6 @@ const AdminDashboard = () => {
   const [actionId, setActionId]   = useState(null);
   const [rejectModal, setRejectModal] = useState({ open: false, id: null });
   const [rejectionReason, setRejection] = useState('');
-
-  // Lock prevents concurrent fetches from racing each other
   const fetchLock = useRef(false);
 
   const fetchAll = useCallback(async ({ showSpinner = false, showSyncBar = false } = {}) => {
@@ -63,21 +63,16 @@ const AdminDashboard = () => {
     }
   }, []);
 
-  // Initial load
   useEffect(() => { fetchAll({ showSpinner: true }); }, [fetchAll]);
 
-  // Refresh when the tab regains focus — no timers, no race conditions
   useEffect(() => {
-    const onVisible = () => {
-      if (!document.hidden) fetchAll({ showSyncBar: true });
-    };
+    const onVisible = () => { if (!document.hidden) fetchAll({ showSyncBar: true }); };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchAll]);
 
   const handleApprove = async (id) => {
     setActionId(id);
-    // 1. Instant optimistic update
     setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: 'approved' } : l));
     setStats(prev => prev ? {
       ...prev,
@@ -85,13 +80,11 @@ const AdminDashboard = () => {
       approved_requests: prev.approved_requests + 1,
     } : prev);
     try {
-      // 2. Persist to backend
       await api.patch(`/admin/leaves/${id}/approve`);
-      // 3. Silent sync to confirm real DB state
       fetchAll({ showSyncBar: true });
     } catch {
       alert('Failed to approve leave.');
-      fetchAll({ showSyncBar: true }); // revert optimistic update
+      fetchAll({ showSyncBar: true });
     } finally {
       setActionId(null);
     }
@@ -101,7 +94,6 @@ const AdminDashboard = () => {
     const id = rejectModal.id;
     const reason = rejectionReason;
     setActionId(id);
-    // 1. Close modal and optimistically update
     setRejectModal({ open: false, id: null });
     setRejection('');
     setLeaves(prev => prev.map(l => l.id === id
@@ -125,10 +117,10 @@ const AdminDashboard = () => {
   };
 
   const statCards = stats ? [
-    { label: 'Total Employees', value: stats.total_employees,   icon: Users,       iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600', num: 'text-indigo-600' },
-    { label: 'Pending',         value: stats.pending_requests,  icon: Clock,       iconBg: 'bg-amber-100',  iconColor: 'text-amber-600',  num: 'text-amber-600'  },
-    { label: 'Approved',        value: stats.approved_requests, icon: CheckCircle, iconBg: 'bg-emerald-100',iconColor: 'text-emerald-600',num: 'text-emerald-600'},
-    { label: 'Rejected',        value: stats.rejected_requests, icon: XCircle,     iconBg: 'bg-rose-100',   iconColor: 'text-rose-500',   num: 'text-rose-500'   },
+    { label: 'Total Employees', value: stats.total_employees,   icon: Users,       iconBg: 'bg-primary/10',   iconColor: 'text-primary',     num: 'text-primary'     },
+    { label: 'Pending',         value: stats.pending_requests,  icon: Clock,       iconBg: 'bg-amber-100',    iconColor: 'text-amber-600',   num: 'text-amber-600'   },
+    { label: 'Approved',        value: stats.approved_requests, icon: CheckCircle, iconBg: 'bg-emerald-100',  iconColor: 'text-emerald-600', num: 'text-emerald-600' },
+    { label: 'Rejected',        value: stats.rejected_requests, icon: XCircle,     iconBg: 'bg-rose-100',     iconColor: 'text-rose-500',    num: 'text-rose-500'    },
   ] : [];
 
   return (
@@ -137,13 +129,18 @@ const AdminDashboard = () => {
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4 mb-8">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Admin Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1 hidden sm:block">Manage leave requests and view employee activity</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-on-surface tracking-tight">Admin Dashboard</h1>
+          <p className="text-on-surface-variant text-sm mt-1 hidden sm:block">
+            Manage leave requests and view employee activity
+          </p>
         </div>
         <button
           onClick={() => fetchAll({ showSyncBar: true })}
           disabled={syncing}
-          className="flex-shrink-0 flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 hover:text-slate-800 border border-slate-200 px-2.5 sm:px-3 py-2 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-40"
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs sm:text-sm
+                     text-on-surface-variant hover:text-on-surface
+                     border border-outline-variant/40 px-2.5 sm:px-3 py-2 rounded-lg
+                     hover:bg-surface-container transition-all disabled:opacity-40"
         >
           <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
           <span className="hidden sm:inline">{syncing ? 'Syncing…' : 'Refresh'}</span>
@@ -152,7 +149,7 @@ const AdminDashboard = () => {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <>
@@ -162,14 +159,15 @@ const AdminDashboard = () => {
           >
             {statCards.map(({ label, value, icon: Icon, iconBg, iconColor, num }) => (
               <motion.div key={label} variants={cardItem}
-                className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-5
+                           hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
               >
                 <div className="flex items-start justify-between">
                   <div>
                     <p className={`text-3xl font-bold ${num}`}>{value ?? '—'}</p>
-                    <p className="text-slate-500 text-sm mt-0.5 font-medium">{label}</p>
+                    <p className="text-on-surface-variant text-sm mt-0.5 font-medium">{label}</p>
                   </div>
-                  <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <div className={`w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
                     <Icon size={20} className={iconColor} />
                   </div>
                 </div>
@@ -177,12 +175,14 @@ const AdminDashboard = () => {
             ))}
           </motion.div>
 
-          {/* ── Tabs (synced with sidebar URL) ── */}
-          <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit mb-6">
+          {/* ── Tabs ── */}
+          <div className="flex gap-1 p-1 bg-surface-container rounded-xl w-fit mb-6">
             {[{ key: 'leaves', label: 'Leave Requests' }, { key: 'employees', label: 'Employees' }].map(({ key, label }) => (
               <button key={key} onClick={() => setSearchParams({ tab: key })}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
-                  activeTab === key ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  activeTab === key
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
                 {label}
@@ -192,12 +192,12 @@ const AdminDashboard = () => {
 
           {/* ── Leave Requests ── */}
           {activeTab === 'leaves' && (
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl overflow-hidden">
 
               {/* Mobile cards */}
-              <div className="sm:hidden divide-y divide-slate-100">
+              <div className="sm:hidden divide-y divide-outline-variant/20">
                 {leaves.length === 0 && (
-                  <p className="py-12 text-center text-slate-400 text-sm">No leave requests found.</p>
+                  <p className="py-12 text-center text-on-surface-variant text-sm">No leave requests found.</p>
                 )}
                 {leaves.map(leave => (
                   <div key={leave.id} className="p-4 space-y-3">
@@ -207,18 +207,18 @@ const AdminDashboard = () => {
                           {mkInitials(leave.employee_name)}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-slate-800 text-sm truncate">{leave.employee_name}</p>
-                          <p className="text-slate-400 text-xs truncate">{leave.department}</p>
+                          <p className="font-semibold text-on-surface text-sm truncate">{leave.employee_name}</p>
+                          <p className="text-on-surface-variant text-xs truncate">{leave.department}</p>
                         </div>
                       </div>
                       <StatusBadge status={leave.status} />
                     </div>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="capitalize font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">{leave.leave_type}</span>
-                      <span className="text-slate-500">{fmt(leave.start_date)} → {fmt(leave.end_date)} · {daysBetween(leave.start_date, leave.end_date)}d</span>
+                      <span className="capitalize font-medium text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-md">{leave.leave_type}</span>
+                      <span className="text-on-surface-variant">{fmt(leave.start_date)} → {fmt(leave.end_date)} · {daysBetween(leave.start_date, leave.end_date)}d</span>
                     </div>
                     {leave.reason && (
-                      <p className="text-xs text-slate-400 truncate">{leave.reason}</p>
+                      <p className="text-xs text-on-surface-variant truncate">{leave.reason}</p>
                     )}
                     {leave.status === 'pending' && (
                       <div className="flex gap-2 pt-1">
@@ -240,36 +240,36 @@ const AdminDashboard = () => {
               <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 text-xs text-slate-400 uppercase tracking-wide">
+                    <tr className="border-b border-outline-variant/20 text-xs text-on-surface-variant uppercase tracking-wide">
                       {['Employee', 'Type', 'Dates', 'Reason', 'Status', 'Actions'].map(h => (
                         <th key={h} className="px-5 py-3.5 text-left font-semibold">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-outline-variant/10">
                     {leaves.length === 0 && (
-                      <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-400">No leave requests found.</td></tr>
+                      <tr><td colSpan={6} className="px-5 py-12 text-center text-on-surface-variant">No leave requests found.</td></tr>
                     )}
                     {leaves.map(leave => (
-                      <tr key={leave.id} className="hover:bg-indigo-50/30 transition-colors">
+                      <tr key={leave.id} className="hover:bg-surface-container transition-colors">
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColor(leave.employee_name)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
                               {mkInitials(leave.employee_name)}
                             </div>
                             <div>
-                              <p className="font-semibold text-slate-800">{leave.employee_name}</p>
-                              <p className="text-slate-400 text-xs">{leave.department}</p>
+                              <p className="font-semibold text-on-surface">{leave.employee_name}</p>
+                              <p className="text-on-surface-variant text-xs">{leave.department}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-4 capitalize text-slate-600 font-medium">{leave.leave_type}</td>
+                        <td className="px-5 py-4 capitalize text-on-surface-variant font-medium">{leave.leave_type}</td>
                         <td className="px-5 py-4 whitespace-nowrap">
-                          <p className="text-slate-700 text-xs font-medium">{fmt(leave.start_date)} → {fmt(leave.end_date)}</p>
-                          <p className="text-slate-400 text-xs mt-0.5">{daysBetween(leave.start_date, leave.end_date)} day{daysBetween(leave.start_date, leave.end_date) !== 1 ? 's' : ''}</p>
+                          <p className="text-on-surface text-xs font-medium">{fmt(leave.start_date)} → {fmt(leave.end_date)}</p>
+                          <p className="text-on-surface-variant text-xs mt-0.5">{daysBetween(leave.start_date, leave.end_date)} day{daysBetween(leave.start_date, leave.end_date) !== 1 ? 's' : ''}</p>
                         </td>
                         <td className="px-5 py-4 max-w-[180px]">
-                          <span className="block truncate text-slate-500 text-xs" title={leave.reason}>{leave.reason}</span>
+                          <span className="block truncate text-on-surface-variant text-xs" title={leave.reason}>{leave.reason}</span>
                         </td>
                         <td className="px-5 py-4"><StatusBadge status={leave.status} /></td>
                         <td className="px-5 py-4">
@@ -296,12 +296,12 @@ const AdminDashboard = () => {
 
           {/* ── Employees ── */}
           {activeTab === 'employees' && (
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl overflow-hidden">
 
               {/* Mobile cards */}
-              <div className="sm:hidden divide-y divide-slate-100">
+              <div className="sm:hidden divide-y divide-outline-variant/20">
                 {employees.length === 0 && (
-                  <p className="py-12 text-center text-slate-400 text-sm">No employees found.</p>
+                  <p className="py-12 text-center text-on-surface-variant text-sm">No employees found.</p>
                 )}
                 {employees.map(emp => (
                   <div key={emp.id} className="flex items-center gap-3 p-4">
@@ -309,12 +309,12 @@ const AdminDashboard = () => {
                       {mkInitials(emp.name)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-800 text-sm truncate">{emp.name}</p>
-                      <p className="text-slate-400 text-xs truncate">{emp.email}</p>
+                      <p className="font-semibold text-on-surface text-sm truncate">{emp.name}</p>
+                      <p className="text-on-surface-variant text-xs truncate">{emp.email}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-xs font-medium text-slate-600">{emp.department || '—'}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs font-medium text-on-surface-variant">{emp.department || '—'}</p>
+                      <p className="text-xs text-on-surface-variant/60 mt-0.5">
                         {new Date(emp.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                       </p>
                     </div>
@@ -326,31 +326,31 @@ const AdminDashboard = () => {
               <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 text-xs text-slate-400 uppercase tracking-wide">
+                    <tr className="border-b border-outline-variant/20 text-xs text-on-surface-variant uppercase tracking-wide">
                       {['Employee', 'Department', 'Joined'].map(h => (
                         <th key={h} className="px-5 py-3.5 text-left font-semibold">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-outline-variant/10">
                     {employees.length === 0 && (
-                      <tr><td colSpan={3} className="px-5 py-12 text-center text-slate-400">No employees found.</td></tr>
+                      <tr><td colSpan={3} className="px-5 py-12 text-center text-on-surface-variant">No employees found.</td></tr>
                     )}
                     {employees.map(emp => (
-                      <tr key={emp.id} className="hover:bg-indigo-50/30 transition-colors">
+                      <tr key={emp.id} className="hover:bg-surface-container transition-colors">
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColor(emp.name)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
                               {mkInitials(emp.name)}
                             </div>
                             <div>
-                              <p className="font-semibold text-slate-800">{emp.name}</p>
-                              <p className="text-slate-400 text-xs">{emp.email}</p>
+                              <p className="font-semibold text-on-surface">{emp.name}</p>
+                              <p className="text-on-surface-variant text-xs">{emp.email}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-4 text-slate-600">{emp.department || '—'}</td>
-                        <td className="px-5 py-4 text-slate-400 text-xs">
+                        <td className="px-5 py-4 text-on-surface-variant">{emp.department || '—'}</td>
+                        <td className="px-5 py-4 text-on-surface-variant text-xs">
                           {new Date(emp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </td>
                       </tr>
@@ -367,34 +367,36 @@ const AdminDashboard = () => {
       <AnimatePresence>
         {rejectModal.open && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4"
             onClick={(e) => e.target === e.currentTarget && setRejectModal({ open: false, id: null })}
           >
             <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.92, opacity: 0 }} transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl"
+              className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 w-full max-w-md shadow-2xl"
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <AlertCircle size={20} className="text-rose-600" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Reject Leave Request</h3>
-                  <p className="text-slate-500 text-xs mt-0.5">Optionally provide a reason for the employee</p>
+                  <h3 className="text-base font-semibold text-on-surface">Reject Leave Request</h3>
+                  <p className="text-on-surface-variant text-xs mt-0.5">Optionally provide a reason for the employee</p>
                 </div>
               </div>
               <textarea value={rejectionReason} onChange={e => setRejection(e.target.value)}
                 rows={3} placeholder="e.g. Insufficient annual leave balance…" maxLength={300}
-                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm resize-none focus:outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-400 transition-all placeholder:text-slate-300"
+                className="w-full border border-outline-variant/40 rounded-lg px-3.5 py-2.5 text-sm resize-none
+                           focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-400
+                           transition-all placeholder:text-on-surface-variant/40 text-on-surface bg-surface"
               />
-              <p className="text-xs text-slate-400 text-right mt-1">{rejectionReason.length}/300</p>
+              <p className="text-xs text-on-surface-variant text-right mt-1">{rejectionReason.length}/300</p>
               <div className="flex gap-3 mt-4">
                 <button onClick={() => { setRejectModal({ open: false, id: null }); setRejection(''); }}
-                  className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
+                  className="flex-1 border border-outline-variant/40 text-on-surface-variant py-2.5 rounded-lg text-sm font-semibold hover:bg-surface-container transition-colors">
                   Cancel
                 </button>
                 <button onClick={handleReject}
-                  className="flex-1 bg-rose-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-rose-700 transition-colors">
+                  className="flex-1 bg-rose-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-rose-700 transition-colors">
                   Confirm Reject
                 </button>
               </div>
