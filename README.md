@@ -5,11 +5,6 @@
 A full-stack leave management platform with a calm, architectural enterprise interface — built entirely with [Claude Code](https://claude.ai/code) by Anthropic and deployed on Microsoft Azure.
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Azure%20Static%20Web%20Apps-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://brave-glacier-08bdffd00.7.azurestaticapps.net)
-[![Uptime](https://img.shields.io/badge/Uptime%20Status-Live%20Monitor-brightgreen?style=for-the-badge&logo=statuspage&logoColor=white)](https://stats.uptimerobot.com/k1OfLaiYDk)
-
-&nbsp;
-
-> The backend runs on the App Service Free tier, which sleeps after twenty minutes of inactivity. UptimeRobot pings `/api/health` every ten minutes to keep the worker warm; the login page also shows a "waking up" banner with auto-retry on cold start, so the first request after a long idle still resolves cleanly.
 
 &nbsp;
 
@@ -71,7 +66,7 @@ The interface is a unified industrial-editorial design system — warm graphite 
 | Tailwind CSS 3 | Utility-first styling, custom warm graphite + burnt orange theme |
 | Framer Motion 12 | Entrance, hover, and shared-layout animations |
 | Lucide React | Icon set |
-| Axios | HTTP client with request and response interceptors (40s timeout) |
+| Axios | HTTP client with request and response interceptors |
 
 **Backend** ([backend/package.json](backend/package.json))
 
@@ -89,9 +84,9 @@ The interface is a unified industrial-editorial design system — warm graphite 
 | Service | Role |
 |---|---|
 | Azure Static Web Apps | Hosts the React build, global CDN, SPA fallback via `staticwebapp.config.json` |
-| Azure App Service (Linux, Node 22 LTS, F1 free) | Hosts the Express API |
+| Azure App Service (Linux, Node 22 LTS) | Hosts the Express API |
 | Azure SQL Database | Managed SQL Server, encrypted in transit |
-| Azure SQL firewall | "Allow Azure services" rule for App Service access; per-IP rules for local dev |
+| Azure SQL firewall | "Allow Azure services" rule for App Service access |
 
 &nbsp;
 
@@ -138,7 +133,7 @@ All endpoints under `/api`. Protected routes pass through `verifyToken` (decodes
 | PATCH | `/api/admin/leaves/:id/approve` | JWT admin | Approve |
 | PATCH | `/api/admin/leaves/:id/reject` | JWT admin | Reject with optional `rejection_reason` |
 | GET | `/api/admin/dashboard/stats` | JWT admin | Aggregate counts |
-| GET | `/api/health` | public | Lightweight liveness (no DB hit by default); `?ping=db` for full DB connectivity check |
+| GET | `/api/health` | public | Lightweight liveness; `?ping=db` for full DB connectivity check |
 
 Admin accounts are created directly via SQL — `/api/auth/register` cannot create them.
 
@@ -200,8 +195,6 @@ staff-leave-management/
 │   │   ├── middleware/                  auth (verifyToken), roleCheck (requireRole)
 │   │   └── routes/                      auth.routes, leave.routes, admin.routes
 │   ├── server.js                        dotenv + listen on PORT
-│   ├── .azure/config                    az webapp up defaults
-│   ├── .env.example
 │   └── package.json
 │
 ├── frontend/
@@ -223,65 +216,11 @@ staff-leave-management/
 │   │   └── index.css                    Tailwind base + grid utilities + keyframes
 │   ├── tailwind.config.js               Token palette + box-shadows + easings
 │   ├── vite.config.js
-│   ├── .env.example
 │   └── package.json
 │
 └── database/
     └── schema.sql                       Table DDL + seed admin account
 ```
-
-&nbsp;
-
-## Running locally
-
-**Backend** — needs a `backend/.env` (copy from `.env.example` and fill in real values):
-
-```bash
-cd backend
-npm install
-npm run dev          # nodemon on port 5000
-```
-
-Required env vars: `DB_SERVER`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, `FRONTEND_URL`, `NODE_ENV=development`. The Azure SQL firewall must allow your client IP — add it under the SQL server's Networking → Firewall rules in the Azure Portal (or `az sql server firewall-rule create`).
-
-**Frontend** — needs `frontend/.env`:
-
-```bash
-cd frontend
-npm install
-npm run dev          # Vite on port 5173
-```
-
-Required env var: `VITE_API_URL=http://localhost:5000/api`.
-
-There is no test suite and no lint config in this repo.
-
-&nbsp;
-
-## Deployment
-
-**Backend** — from `backend/`, using `.azure/config` defaults:
-
-```bash
-az webapp up --runtime "NODE:22-lts" --os-type linux
-```
-
-This zip-deploys to `leave-mgmt-arfaan` in `leave-mgmt-rg`. Production env vars live on the App Service (Application settings), not in a deployed `.env` — `.env` is gitignored and excluded from the bundle. After deploy, verify settings with `az webapp config appsettings list -g leave-mgmt-rg -n leave-mgmt-arfaan`.
-
-**Frontend** — from `frontend/`, with the production backend URL baked in at build time:
-
-```bash
-VITE_API_URL='https://leave-mgmt-arfaan-edfyfth3cffxf3cx.southeastasia-01.azurewebsites.net/api' \
-  npm run build
-
-# Get the SWA deployment token, then push
-SWA_TOKEN=$(az staticwebapp secrets list -n leave-mgmt-frontend -g leave-mgmt-rg \
-  --query properties.apiKey -o tsv)
-npx @azure/static-web-apps-cli deploy ./dist \
-  --deployment-token "$SWA_TOKEN" --env production
-```
-
-The Static Web App was created in "Other" mode (no GitHub Actions integration), so deploys are CLI-driven. `public/staticwebapp.config.json` ships with the build and handles SPA navigation fallback.
 
 &nbsp;
 
