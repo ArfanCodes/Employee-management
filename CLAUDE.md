@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Staff Leave Management System — a full-stack web app where employees apply for leave and admins approve/reject requests. Two separate apps in one repo:
 
 - `backend/` — Node.js + Express REST API, Azure SQL (mssql)
-- `frontend/` — React 18 + Vite SPA, Tailwind CSS
+- `frontend/` — React 18 + Vite SPA, Tailwind CSS + framer-motion + lucide-react
 
 Deployed on Azure: App Service (`leave-mgmt-arfaan`, F1 free tier, Linux Node 22, `southeastasia`) + Azure SQL.
 
@@ -21,7 +21,7 @@ npm run dev        # nodemon — auto-restarts on file change
 npm start          # production start
 ```
 
-Requires a `.env` file in `backend/`:
+Requires a `.env` file in `backend/` (see `backend/.env.example`):
 ```
 DB_SERVER=...
 DB_NAME=...
@@ -30,8 +30,9 @@ DB_PASSWORD=...
 DB_PORT=1433
 JWT_SECRET=...
 JWT_EXPIRES_IN=24h
-FRONTEND_URL=https://your-frontend-url
+FRONTEND_URL=http://localhost:5173
 NODE_ENV=development
+PORT=5000
 ```
 
 ### Frontend
@@ -43,16 +44,20 @@ npm run build      # production build to dist/
 npm run preview    # preview the production build locally
 ```
 
-Requires a `.env` file in `frontend/`:
+Requires a `.env` file in `frontend/` (see `frontend/.env.example`):
 ```
 VITE_API_URL=http://localhost:5000/api
 ```
+
+There is no test suite and no lint configuration in this project.
 
 ### Deploy to Azure
 ```bash
 cd backend
 az webapp up --name leave-mgmt-arfaan --resource-group leave-mgmt-rg --runtime "NODE:22-lts" --os-type linux --sku F1
 ```
+
+The `backend/.azure/config` file stores these defaults so subsequent `az webapp up` runs need no flags.
 
 ## Architecture
 
@@ -63,7 +68,7 @@ Admin accounts must be created directly via SQL — `POST /api/auth/register` al
 
 ### Backend structure
 ```
-backend/server.js          → entry point (dotenv + listen)
+backend/server.js          → entry point (dotenv + listen on PORT)
 backend/src/app.js         → Express setup, CORS, route mounting
 backend/src/config/db.js   → mssql connection pool (lazy init + reconnect on stale)
 backend/src/middleware/    → verifyToken, requireRole
@@ -71,13 +76,13 @@ backend/src/controllers/   → auth, leave, admin (all DB logic lives here)
 backend/src/routes/        → thin route files that wire HTTP verbs to controllers
 ```
 
-All controllers call `getPool()` which returns a shared `mssql` connection pool. The pool auto-reconnects if the Azure App Service wakes from cold start or the DB restarts — it checks `pool.connected` and listens for pool errors to null out the reference.
+All controllers call `getPool()` which returns a shared `mssql` connection pool. The pool auto-reconnects if the Azure App Service wakes from cold start or the DB restarts — it checks `pool.connected` and listens for pool errors to null out the reference. Azure SQL requires `encrypt: true`; `trustServerCertificate` is enabled only in development.
 
 ### Frontend structure
 ```
 frontend/src/App.jsx             → router + route definitions
 frontend/src/context/AuthContext.jsx  → global auth state (React Context, persisted to localStorage)
-frontend/src/services/api.js     → axios instance; request interceptor adds JWT; response interceptor fires auth:unauthorized custom event on 401
+frontend/src/services/api.js     → axios instance (40s timeout); request interceptor adds JWT; response interceptor fires auth:unauthorized custom event on 401
 frontend/src/components/ProtectedRoute.jsx  → role guard + wraps pages in DashboardLayout
 frontend/src/components/DashboardLayout.jsx → sidebar + mobile top bar shell
 frontend/src/pages/              → one file per route
@@ -104,13 +109,15 @@ frontend/src/pages/              → one file per route
 | GET | `/api/auth/profile` | JWT |
 | POST | `/api/leave/apply` | JWT employee |
 | GET | `/api/leave/my-leaves` | JWT employee |
-| PUT | `/api/leave/cancel/:id` | JWT employee |
+| PATCH | `/api/leave/cancel/:id` | JWT employee |
 | GET | `/api/admin/employees` | JWT admin |
 | GET | `/api/admin/leaves` | JWT admin |
-| PUT | `/api/admin/leaves/:id/approve` | JWT admin |
-| PUT | `/api/admin/leaves/:id/reject` | JWT admin |
-| GET | `/api/admin/dashboard-stats` | JWT admin |
+| PATCH | `/api/admin/leaves/:id/approve` | JWT admin |
+| PATCH | `/api/admin/leaves/:id/reject` | JWT admin |
+| GET | `/api/admin/dashboard/stats` | JWT admin |
 | GET | `/api/health` | none |
+
+`GET /api/health` returns quickly without touching the DB by default; add `?ping=db` to also verify the database connection.
 
 ### Database tables
 - `users` — `id, name, email, password (bcrypt), department, role ('employee'|'admin'), created_at`
@@ -118,5 +125,5 @@ frontend/src/pages/              → one file per route
 
 ## Known Infrastructure Notes
 
-- **F1 cold start**: The free tier App Service sleeps after ~20 min inactivity. First request after sleep can be slow (~10–30s). The DB pool reconnection in `db.js` handles the stale connection on wake. Consider pinging `/api/health` every 10 min via UptimeRobot to prevent sleep.
+- **F1 cold start**: The free tier App Service sleeps after ~20 min inactivity. First request after sleep can take 10–30s. The DB pool reconnection in `db.js` handles the stale connection on wake. The frontend axios instance uses a 40s timeout and `Login.jsx` has built-in auto-retry logic to handle wake-up delays gracefully. Use UptimeRobot to ping `/api/health` every 10 min to prevent sleep.
 - **CORS**: Allowed origins are `FRONTEND_URL` env var + `localhost:5173/5174`. Update `app.js` when adding a new frontend domain.

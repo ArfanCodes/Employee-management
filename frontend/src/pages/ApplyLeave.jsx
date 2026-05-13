@@ -4,13 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Plane, Thermometer, Baby, UserCheck, DollarSign, MoreHorizontal, CheckCircle, Send } from 'lucide-react';
 import api from '../services/api';
 
+const ease = [0.16, 1, 0.3, 1];
+
 const TYPES = [
-  { value: 'annual',    label: 'Annual',    icon: Plane,          accent: 'text-primary',       bg: 'bg-primary/8',       border: 'border-primary/30'   },
-  { value: 'sick',      label: 'Sick',      icon: Thermometer,    accent: 'text-rose-600',      bg: 'bg-rose-50',         border: 'border-rose-200'     },
-  { value: 'maternity', label: 'Maternity', icon: Baby,           accent: 'text-pink-600',      bg: 'bg-pink-50',         border: 'border-pink-200'     },
-  { value: 'paternity', label: 'Paternity', icon: UserCheck,      accent: 'text-sky-600',       bg: 'bg-sky-50',          border: 'border-sky-200'      },
-  { value: 'unpaid',    label: 'Unpaid',    icon: DollarSign,     accent: 'text-amber-600',     bg: 'bg-amber-50',        border: 'border-amber-200'    },
-  { value: 'other',     label: 'Other',     icon: MoreHorizontal, accent: 'text-on-surface-variant', bg: 'bg-surface-container', border: 'border-outline-variant/40' },
+  { value: 'annual',    label: 'Annual',    icon: Plane          },
+  { value: 'sick',      label: 'Sick',      icon: Thermometer    },
+  { value: 'maternity', label: 'Maternity', icon: Baby           },
+  { value: 'paternity', label: 'Paternity', icon: UserCheck      },
+  { value: 'unpaid',    label: 'Unpaid',    icon: DollarSign     },
+  { value: 'other',     label: 'Other',     icon: MoreHorizontal },
 ];
 
 const daysBetween = (start, end) => {
@@ -25,7 +27,7 @@ const ApplyLeave = () => {
   const [error, setError]     = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate               = useNavigate();
+  const navigate              = useNavigate();
 
   const today    = new Date().toISOString().split('T')[0];
   const duration = daysBetween(form.start_date, form.end_date);
@@ -49,30 +51,40 @@ const ApplyLeave = () => {
     return (
       <div className="max-w-lg mx-auto">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-12 text-center"
+          initial={{ opacity: 0, y: 16, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+          transition={{ duration: 0.55, ease }}
+          className="relative rounded-xl border border-outline-variant/40 bg-surface-container-lowest
+                     p-12 text-center shadow-[0_1px_0_rgba(27,26,23,0.04)] overflow-hidden"
         >
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
-            <CheckCircle size={32} className="text-emerald-600" />
+          <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-on-surface/10 to-transparent" />
+          <div className="inline-grid place-items-center w-14 h-14 rounded-md
+                          bg-emerald-50 border border-emerald-200/50 mb-5">
+            <CheckCircle size={26} strokeWidth={1.6} className="text-emerald-700" />
           </div>
-          <h2 className="text-xl font-semibold text-on-surface mb-2">Application Submitted</h2>
-          <p className="text-on-surface-variant text-sm mb-8">
-            Your leave request has been submitted and is pending admin review.
+          <h2 className="text-[20px] font-medium tracking-[-0.015em] text-on-surface mb-2">
+            Application submitted
+          </h2>
+          <p className="text-on-surface-variant text-[13.5px] mb-8 max-w-xs mx-auto">
+            Your request is pending admin review. You will see status updates in your history.
           </p>
           <div className="flex gap-3 justify-center">
             <Link
               to="/leave-history"
-              className="bg-primary text-on-primary px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-container transition-colors"
+              className="px-5 py-2.5 rounded-md bg-primary text-on-primary
+                         text-[12px] font-semibold tracking-[0.06em] uppercase
+                         hover:bg-primary-container transition-colors
+                         shadow-[0_8px_24px_-12px_rgba(177,90,28,0.55)]"
             >
-              View History
+              View history
             </Link>
             <button
               onClick={() => { setSuccess(false); setForm({ leave_type: '', start_date: '', end_date: '', reason: '' }); }}
-              className="border border-outline-variant/40 text-on-surface-variant px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-surface-container transition-colors"
+              className="px-5 py-2.5 rounded-md border border-outline-variant/40 bg-surface-container/40
+                         text-[12px] font-semibold tracking-[0.06em] uppercase text-on-surface-variant
+                         hover:bg-surface-container hover:text-on-surface transition-colors"
             >
-              Apply Again
+              Apply again
             </button>
           </div>
         </motion.div>
@@ -84,49 +96,68 @@ const ApplyLeave = () => {
     <div className="max-w-2xl mx-auto">
 
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease }}
+        className="mb-10"
+      >
         <Link to="/dashboard"
-          className="text-on-surface-variant hover:text-on-surface transition-colors">
-          <ArrowLeft size={20} />
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium tracking-[0.04em] text-on-surface-variant hover:text-on-surface transition-colors mb-6">
+          <ArrowLeft size={13} strokeWidth={1.8} />
+          Back to dashboard
         </Link>
-        <div>
-          <h1 className="text-2xl font-semibold text-on-surface tracking-tight">Apply for Leave</h1>
-          <p className="text-on-surface-variant text-sm mt-0.5">Fill in the details to submit a request</p>
+        <div className="flex items-center gap-2.5 mb-3">
+          <span className="h-px w-7 bg-primary/60" />
+          <span className="text-[10px] font-medium tracking-[0.22em] uppercase text-on-surface-variant/65">
+            New request
+          </span>
         </div>
-      </div>
+        <h1 className="text-[30px] sm:text-[34px] font-medium tracking-[-0.025em] text-on-surface leading-[1.05]">
+          Apply for leave
+        </h1>
+        <p className="mt-2 text-[14px] text-on-surface-variant">
+          Submit a time-off request for admin review.
+        </p>
+      </motion.div>
 
-      <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 sm:p-8">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.05, ease }}
+        className="relative rounded-xl border border-outline-variant/40 bg-surface-container-lowest
+                   shadow-[0_1px_0_rgba(27,26,23,0.04)] p-7 sm:p-9 overflow-hidden"
+      >
+        <div className="absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-on-surface/10 to-transparent" />
+
         {error && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg mb-6 text-sm font-medium">
+          <div className="mb-6 px-3.5 py-3 rounded-md bg-rose-50 border border-rose-200/55 text-rose-800 text-[13px] font-medium">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-7">
+        <form onSubmit={handleSubmit} className="space-y-8">
 
           {/* Leave Type Cards */}
           <div>
-            <label className="block text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-3">
-              Leave Type
+            <label className="block text-[10px] font-medium tracking-[0.22em] uppercase text-on-surface-variant/65 mb-3">
+              Leave type
             </label>
-            <div className="grid grid-cols-3 gap-3">
-              {TYPES.map(({ value, label, icon: Icon, accent, bg, border }) => {
+            <div className="grid grid-cols-3 gap-2.5">
+              {TYPES.map(({ value, label, icon: Icon }) => {
                 const selected = form.leave_type === value;
                 return (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setForm(f => ({ ...f, leave_type: value }))}
-                    className={`
-                      flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-center transition-all duration-150
+                    className={`relative flex flex-col items-center gap-2 px-3 py-4 rounded-md border text-center transition-all duration-200
                       ${selected
-                        ? `${bg} ${border} ring-2 ring-offset-1 ring-primary/40`
-                        : 'border-outline-variant/30 hover:border-outline-variant hover:bg-surface-container'
-                      }
-                    `}
+                        ? 'border-primary/55 bg-primary/[0.04] shadow-[0_0_0_3px_rgba(177,90,28,0.06)]'
+                        : 'border-outline-variant/40 bg-surface-container/35 hover:bg-surface-container hover:border-outline-variant/60'}`}
                   >
-                    <Icon size={20} className={selected ? accent : 'text-on-surface-variant/50'} />
-                    <span className={`text-xs font-semibold ${selected ? accent : 'text-on-surface-variant'}`}>
+                    <Icon size={16} strokeWidth={1.7}
+                      className={selected ? 'text-primary' : 'text-on-surface-variant/60'} />
+                    <span className={`text-[11.5px] font-medium tracking-[-0.005em]
+                      ${selected ? 'text-on-surface' : 'text-on-surface-variant'}`}>
                       {label}
                     </span>
                   </button>
@@ -134,36 +165,36 @@ const ApplyLeave = () => {
               })}
             </div>
             {!form.leave_type && (
-              <p className="text-xs text-on-surface-variant/60 mt-2">Select a leave type above</p>
+              <p className="text-[11.5px] text-on-surface-variant/55 mt-2.5">Select a leave type above.</p>
             )}
           </div>
 
           {/* Dates */}
           <div>
-            <label className="block text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-3">
-              Date Range
+            <label className="block text-[10px] font-medium tracking-[0.22em] uppercase text-on-surface-variant/65 mb-3">
+              Date range
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-on-surface-variant mb-1.5 font-medium">Start Date</label>
+                <label className="block text-[11.5px] text-on-surface-variant/75 mb-1.5 font-medium">Start</label>
                 <input
                   type="date" name="start_date" value={form.start_date}
                   onChange={set('start_date')} required min={today}
-                  className="w-full border border-outline-variant/40 rounded-lg px-3.5 py-3 text-sm
-                             text-on-surface bg-surface
-                             focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
-                             transition-all appearance-none"
+                  className="w-full rounded-md border border-outline-variant/40 bg-surface
+                             px-3.5 py-2.5 text-[13.5px] text-on-surface
+                             focus:outline-none focus:ring-[3px] focus:ring-primary/15 focus:border-primary/55
+                             transition-[border-color,box-shadow] appearance-none"
                 />
               </div>
               <div>
-                <label className="block text-xs text-on-surface-variant mb-1.5 font-medium">End Date</label>
+                <label className="block text-[11.5px] text-on-surface-variant/75 mb-1.5 font-medium">End</label>
                 <input
                   type="date" name="end_date" value={form.end_date}
                   onChange={set('end_date')} required min={form.start_date || today}
-                  className="w-full border border-outline-variant/40 rounded-lg px-3.5 py-3 text-sm
-                             text-on-surface bg-surface
-                             focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
-                             transition-all appearance-none"
+                  className="w-full rounded-md border border-outline-variant/40 bg-surface
+                             px-3.5 py-2.5 text-[13.5px] text-on-surface
+                             focus:outline-none focus:ring-[3px] focus:ring-primary/15 focus:border-primary/55
+                             transition-[border-color,box-shadow] appearance-none"
                 />
               </div>
             </div>
@@ -173,7 +204,7 @@ const ApplyLeave = () => {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="text-xs text-primary font-semibold mt-2"
+                  className="text-[11.5px] font-medium tracking-[0.04em] text-primary mt-2.5"
                 >
                   {duration} day{duration !== 1 ? 's' : ''} selected
                 </motion.p>
@@ -183,50 +214,63 @@ const ApplyLeave = () => {
 
           {/* Reason */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold tracking-widest uppercase text-on-surface-variant">
+            <div className="flex items-center justify-between mb-2.5">
+              <label className="block text-[10px] font-medium tracking-[0.22em] uppercase text-on-surface-variant/65">
                 Reason
               </label>
-              <span className="text-xs text-on-surface-variant/60">{form.reason.length}/500</span>
+              <span className="text-[11px] text-on-surface-variant/55 tabular-nums">{form.reason.length}/500</span>
             </div>
             <textarea
               name="reason" value={form.reason}
               onChange={set('reason')} required
               rows={4} maxLength={500}
               placeholder="Briefly describe why you need this leave…"
-              className="w-full border border-outline-variant/40 rounded-lg px-3.5 py-2.5 text-sm resize-none
-                         text-on-surface bg-surface placeholder:text-on-surface-variant/40
-                         focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+              className="w-full rounded-md border border-outline-variant/40 bg-surface
+                         px-3.5 py-3 text-[13.5px] text-on-surface placeholder:text-on-surface-variant/45
+                         focus:outline-none focus:ring-[3px] focus:ring-primary/15 focus:border-primary/55
+                         transition-[border-color,box-shadow] resize-none"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-3 pt-2">
             <button
               type="submit"
               disabled={loading || !form.leave_type}
-              className="flex-1 bg-primary text-on-primary py-2.5 rounded-lg font-semibold text-sm
-                         hover:bg-primary-container disabled:opacity-50 transition-all
-                         hover:-translate-y-0.5 active:scale-[0.98]
-                         flex items-center justify-center gap-2"
+              className="group flex-1 py-3 rounded-md bg-primary text-on-primary
+                         text-[12px] font-semibold tracking-[0.08em] uppercase
+                         flex items-center justify-center gap-2
+                         shadow-[0_8px_24px_-12px_rgba(177,90,28,0.55)]
+                         hover:bg-primary-container hover:shadow-[0_12px_32px_-12px_rgba(207,123,53,0.55)]
+                         active:translate-y-[1px]
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         transition-[box-shadow,transform,background-color]"
             >
               {loading ? (
-                <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</>
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Submitting
+                </>
               ) : (
-                <><Send size={15} /> Submit Application</>
+                <>
+                  <Send size={13} strokeWidth={2}
+                    className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                  Submit application
+                </>
               )}
             </button>
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-              className="px-5 border border-outline-variant/40 text-on-surface-variant py-2.5 rounded-lg text-sm font-semibold hover:bg-surface-container transition-colors"
+              className="px-5 rounded-md border border-outline-variant/40 bg-surface-container/40
+                         text-[12px] font-semibold tracking-[0.08em] uppercase text-on-surface-variant
+                         hover:bg-surface-container hover:text-on-surface transition-colors"
             >
               Cancel
             </button>
           </div>
-
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };
