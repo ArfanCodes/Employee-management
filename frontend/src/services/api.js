@@ -10,7 +10,8 @@ import axios from 'axios';
  */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  headers: { 'Content-Type': 'application/json' }
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 40000, // 40s — covers Azure F1 cold start wake-up time
 });
 
 // REQUEST interceptor — attach JWT before every outgoing request

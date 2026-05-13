@@ -35,8 +35,12 @@ app.use('/api/auth', authRoutes);    // /api/auth/register, /api/auth/login
 app.use('/api/leave', leaveRoutes);  // /api/leave/apply, /api/leave/my-leaves
 app.use('/api/admin', adminRoutes);  // /api/admin/employees, /api/admin/leaves
 
-// Health check — also pings the DB so external keep-alive pings prevent Azure SQL auto-pause
+// Health check — lightweight by default to avoid burning Azure SQL free quota.
+// Add ?ping=db to the URL for a full DB connectivity check (used manually, not by UptimeRobot).
 app.get('/api/health', async (req, res) => {
+  if (req.query.ping !== 'db') {
+    return res.json({ status: 'OK', db: 'skipped' });
+  }
   try {
     const { getPool } = require('./config/db');
     const pool = await getPool();

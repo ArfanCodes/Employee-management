@@ -10,6 +10,7 @@ const Login = () => {
   const [showPass, setShowPass]     = useState(false);
   const [error, setError]           = useState('');
   const [loading, setLoading]       = useState(false);
+  const [waking, setWaking]         = useState(false);
   const { login, user, loading: authLoading } = useAuth();
   const navigate                    = useNavigate();
 
@@ -25,15 +26,32 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setWaking(false);
     setLoading(true);
-    try {
-      const res = await api.post('/auth/login', form);
-      login(res.data.user, res.data.token);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+
+    const attemptLogin = async (attempt = 1) => {
+      try {
+        const res = await api.post('/auth/login', form);
+        login(res.data.user, res.data.token);
+      } catch (err) {
+        const isNetworkError = !err.response; // server asleep or timed out
+        if (isNetworkError && attempt < 4) {
+          setWaking(true);
+          await new Promise(r => setTimeout(r, 6000));
+          return attemptLogin(attempt + 1);
+        }
+        setWaking(false);
+        setError(
+          isNetworkError
+            ? 'Server could not be reached after several attempts. Please try again in a moment.'
+            : err.response?.data?.message || 'Login failed. Please try again.'
+        );
+      }
+    };
+
+    await attemptLogin();
+    setLoading(false);
+    setWaking(false);
   };
 
   return (
@@ -83,6 +101,13 @@ const Login = () => {
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h1>
             <p className="text-slate-500 text-sm mt-1.5">Sign in to your account to continue</p>
           </div>
+
+          {waking && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl mb-5 text-sm font-medium flex items-center gap-2.5">
+              <span className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+              Server is waking up from sleep, please wait…
+            </div>
+          )}
 
           {error && (
             <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl mb-5 text-sm font-medium">
@@ -135,7 +160,7 @@ const Login = () => {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Signing in…
+                  {waking ? 'Waking server…' : 'Signing in…'}
                 </span>
               ) : 'Sign In'}
             </button>
